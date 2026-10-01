@@ -3,6 +3,7 @@
 
     .\scripts\extract-hero-frames.ps1 -Video "C:\chemin\kling-ecrin-instant.mp4"
     .\scripts\extract-hero-frames.ps1 -Video ... -Frames 180
+    .\scripts\extract-hero-frames.ps1 -Video ... -End 7.2      (ignore la fin, figée)
 
   Produit :
     public/hero/desktop/0000.webp …  1280 px de large, 16:9
@@ -15,15 +16,21 @@
 #>
 param(
   [Parameter(Mandatory = $true)] [string] $Video,
-  [int] $Frames = 120
+  [int] $Frames = 120,
+  [double] $Start = 0,
+  [double] $End = 0   # 0 = jusqu'à la fin de la vidéo
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $heroDir = Join-Path $root "public/hero"
 
-$duration = [double]::Parse((& ffprobe -v error -show_entries format=duration -of csv=p=0 $Video), [Globalization.CultureInfo]::InvariantCulture)
-$fps = [math]::Round($Frames / $duration, 4).ToString([Globalization.CultureInfo]::InvariantCulture)
+$inv = [Globalization.CultureInfo]::InvariantCulture
+$total = [double]::Parse((& ffprobe -v error -show_entries format=duration -of csv=p=0 $Video), $inv)
+if ($End -le 0 -or $End -gt $total) { $End = $total }
+$duration = $End - $Start
+$fps = [math]::Round($Frames / $duration, 4).ToString($inv)
+$range = @("-ss", $Start.ToString($inv), "-to", $End.ToString($inv))
 
 $sets = @(
   @{ Name = "desktop"; Filter = "fps=$fps,scale=1280:-2:flags=lanczos"; Quality = 58 },
@@ -38,7 +45,7 @@ foreach ($set in $sets) {
 
   # -quality : compromis netteté / poids (55-60 suffit : l’image bouge pendant le scrub)
   # -compression_level 6 : encodage plus lent, fichiers ~10 % plus légers
-  & ffmpeg -hide_banner -loglevel error -y -i $Video `
+  & ffmpeg -hide_banner -loglevel error -y @range -i $Video `
     -vf $set.Filter -c:v libwebp -quality $set.Quality -compression_level 6 -preset photo `
     -start_number 0 (Join-Path $dir "%04d.webp")
 
