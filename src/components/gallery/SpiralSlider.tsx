@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Photo } from "@/components/site/Photo";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { scrollToY } from "@/lib/scroll";
 import { useMediaQuery } from "@/lib/media-query";
 import { formatDate, titleOf, type Photo as PhotoData } from "@/lib/catalog";
 
@@ -34,9 +35,12 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
         const w = stage.current!.clientWidth;
         const h = stage.current!.clientHeight;
         const wide = w >= 768;
-        const step = ((wide ? 24 : 30) * Math.PI) / 180; // angle entre deux photos sur l'hélice
-        const radius = wide ? Math.min(w * 0.42, 720) : w * 0.6;
-        const rise = h * (wide ? 0.085 : 0.07); // pas de l'hélice
+        // Écran étroit : hélice plus ouverte et plus pentue, pour que les voisines
+        // s'écartent sur les côtés et en hauteur au lieu de s'empiler sur la photo de face.
+        const step = ((wide ? 24 : 42) * Math.PI) / 180; // angle entre deux photos sur l'hélice
+        const radius = wide ? Math.min(w * 0.42, 720) : w * 0.78;
+        const rise = h * (wide ? 0.085 : 0.15); // pas de l'hélice
+        const reach = wide ? 1.75 : 1.25; // au-delà (en radians), la photo s'efface
 
         cards.forEach((card, i) => {
           const d = i - state.p; // distance à la photo de face, en nombre de photos
@@ -46,7 +50,7 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
           const z = (Math.cos(a) - 1) * radius;
           const y = d * rise;
           // Au-delà de 75° la photo tourne le dos : elle s'efface avant de passer derrière l'axe.
-          const fade = Math.min(1, Math.max(0, (1.75 - Math.abs(a)) / 0.45));
+          const fade = Math.min(1, Math.max(0, (reach - Math.abs(a)) / 0.4));
           card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(4)}rad) scale(${(0.86 + 0.26 * Math.max(0, facing) ** 6).toFixed(4)})`;
           card.style.opacity = fade.toFixed(3);
           card.style.visibility = fade > 0 ? "visible" : "hidden";
@@ -74,6 +78,12 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
           pin: true,
           scrub: 1.1,
           invalidateOnRefresh: true,
+          // Aimantage : à l'arrêt, la photo la plus proche revient de face.
+          onScrubComplete: (self) => {
+            if (!self.isActive || n < 2) return;
+            const y = self.start + (Math.round(self.progress * (n - 1)) / (n - 1)) * (self.end - self.start);
+            if (Math.abs(y - self.scroll()) > 2) scrollToY(y, 0.7);
+          },
         },
       });
       window.addEventListener("resize", render);
@@ -115,7 +125,7 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
                 data-cursor="Voir"
                 tabIndex={i === active ? 0 : -1}
                 aria-hidden={i !== active}
-                className="relative col-start-1 row-start-1 block aspect-[4/5] w-[clamp(150px,16vw,290px)] max-md:w-[42vw] overflow-hidden will-change-transform [backface-visibility:hidden]"
+                className="relative col-start-1 row-start-1 block aspect-[4/5] w-[clamp(150px,16vw,290px)] max-md:w-[min(56vw,300px)] overflow-hidden will-change-transform [backface-visibility:hidden]"
                 style={{ backgroundColor: p.color, opacity: i === 0 ? 1 : 0 }}
               >
                 <Photo photo={p} fill sizes="(min-width: 768px) 26vw, 60vw" className="object-cover" />

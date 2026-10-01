@@ -58,7 +58,7 @@ export function Header() {
         }`}
       >
         <div className="flex items-baseline justify-between gap-6">
-          <Link href="/" className="pointer-events-auto font-display text-[1.35rem] leading-none tracking-[0.01em]">
+          <Link href="/" className="pointer-events-auto font-display text-[1.2rem] leading-none tracking-[0.01em] whitespace-nowrap sm:text-[1.35rem]">
             Virginie Legoff
           </Link>
 
@@ -78,8 +78,8 @@ export function Header() {
             </Link>
           </nav>
 
-          <div className="pointer-events-auto flex items-baseline gap-5 md:hidden">
-            <Link href="/panier/" className="font-mono text-[0.72rem] tracking-[0.12em] uppercase">
+          <div className="pointer-events-auto flex items-baseline gap-4 md:hidden">
+            <Link href="/panier/" className="font-mono text-[0.72rem] tracking-[0.12em] whitespace-nowrap uppercase">
               Panier ({count})
             </Link>
             <button
