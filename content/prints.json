@@ -1,33 +1,57 @@
 {
   "currency": "eur",
+  "minDpi": 180,
+  "note": "Tirage sans recadrage : si le ratio de la photo diffère du papier, l’image est centrée avec des marges blanches.",
   "formats": [
-    { "id": "20x30", "label": "20 × 30 cm", "widthCm": 20, "heightCm": 30 },
-    { "id": "30x40", "label": "30 × 40 cm", "widthCm": 30, "heightCm": 40 }
+    {
+      "id": "20x30",
+      "label": "20 × 30 cm",
+      "widthCm": 20,
+      "heightCm": 30
+    },
+    {
+      "id": "30x40",
+      "label": "30 × 40 cm",
+      "widthCm": 30,
+      "heightCm": 40
+    }
   ],
   "supports": [
     {
       "id": "hahnemuhle-photo-rag-bw-310",
       "name": "Hahnemühle Photo Rag Bright White",
       "finish": "Mat · 100 % coton · 310 g",
-      "pricesCents": { "20x30": 6000, "30x40": 9000 }
+      "pricesCents": {
+        "20x30": 6000,
+        "30x40": 9000
+      }
     },
     {
       "id": "canson-rag-photographique-310",
       "name": "Canson Rag Photographique",
       "finish": "Mat · 100 % coton · 310 g",
-      "pricesCents": { "20x30": 4500, "30x40": 7000 }
+      "pricesCents": {
+        "20x30": 4500,
+        "30x40": 7000
+      }
     },
     {
       "id": "canson-infinity-photosatin-270",
       "name": "Canson Infinity PhotoSatin",
       "finish": "Satiné · 270 g",
-      "pricesCents": { "20x30": 3000, "30x40": 5500 }
+      "pricesCents": {
+        "20x30": 3000,
+        "30x40": 5500
+      }
     },
     {
       "id": "alu-dibond-3mm",
       "name": "Aluminium Dibond",
       "finish": "Contrecollé · 3 mm · prêt à accrocher",
-      "pricesCents": { "20x30": 9000, "30x40": 11000 }
+      "pricesCents": {
+        "20x30": 9000,
+        "30x40": 11000
+      }
     }
   ]
 }

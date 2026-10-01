@@ -1,0 +1,79 @@
+name: Déploiement O2switch
+
+# À chaque push sur main (y compris les publications depuis l'administration),
+# le site est reconstruit puis envoyé en FTPS. SSH n'est pas utilisé : O2switch
+# n'ouvre SSH qu'aux IP autorisées, et celles de GitHub Actions changent.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-o2switch
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Tant que les secrets FTP ne sont pas renseignés, le workflow vérifie le build sans déployer.
+      CAN_DEPLOY: ${{ secrets.FTP_HOST != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build statique
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
+
+      - name: Point d'entrée PHP de l'API (public_html/api)
+        run: |
+          mkdir -p out/api
+          cp server/public-api/index.php server/public-api/.htaccess out/api/
+
+      - name: Code PHP privé (~/vl-app, hors public_html)
+        run: |
+          mkdir -p deploy/vl-app/content
+          cp -r server/bootstrap.php server/app server/lib server/assets server/tools deploy/vl-app/
+          cp content/catalog.json content/prints.json deploy/vl-app/content/
+
+      - name: Envoi du site → public_html
+        if: env.CAN_DEPLOY == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./out/
+          server-dir: public_html/
+          # Photos et séquence du hero : envoyées à part (non versionnées), jamais supprimées par le déploiement.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            media/**
+            hero/desktop/**
+            hero/mobile/**
+
+      - name: Envoi du code serveur → vl-app
+        if: env.CAN_DEPLOY == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./deploy/vl-app/
+          server-dir: vl-app/
+          # config.php et data/ n'existent que sur le serveur : jamais écrasés.
+          exclude: |
+            config.php
+            data/**

@@ -1,0 +1,11 @@
+{
+  "frames": 120,
+  "desktop": {
+    "width": 1280,
+    "height": 720
+  },
+  "mobile": {
+    "width": 720,
+    "height": 900
+  }
+}

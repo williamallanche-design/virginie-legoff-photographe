@@ -147,3 +147,127 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ─── Liens ───────────────────────────────────────────────────────── */
+/* Navigation : le filet apparaît au survol, de gauche à droite. */
+@utility link-line {
+  background: linear-gradient(currentColor, currentColor) 100% 100% / 0 1px no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.5s var(--ease-tide);
+  &:hover,
+  &:focus-visible {
+    background-size: 100% 1px;
+    background-position: 0 100%;
+  }
+}
+@utility link-line-on {
+  background-size: 100% 1px;
+}
+/* Liens dans le texte : soulignés au repos, le filet se retire au survol. */
+@utility link-text {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.5s var(--ease-tide);
+  &:hover {
+    background-size: 0 1px;
+    background-position: 100% 100%;
+  }
+}
+
+/* ─── Boutons ─────────────────────────────────────────────────────── */
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.15rem 1.65rem;
+  border: 1px solid var(--fg);
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-button);
+  line-height: 1;
+  letter-spacing: var(--text-button--letter-spacing);
+  text-transform: uppercase;
+  transition:
+    background-color 0.3s var(--ease-tide),
+    color 0.3s var(--ease-tide);
+  &:hover:not(:disabled) {
+    background: transparent;
+    color: var(--fg);
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+@utility btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  &:hover:not(:disabled) {
+    background: var(--fg);
+    color: var(--bg);
+  }
+}
+
+/* ─── Marée, grain, curseur ───────────────────────────────────────── */
+body {
+  transition:
+    background-color 1.2s var(--ease-tide),
+    color 1.2s var(--ease-tide);
+}
+/* Premier rendu : le fond suit la première section avant que <Tide /> ne prenne la main. */
+body:not([data-mood]):has(main > [data-mood="nuit"]:first-child) {
+  background: var(--color-nuit);
+}
+
+/* Grain argentique, uniquement sur les fonds Nuit, jamais sur les photos (elles passent au-dessus). */
+body[data-mood="nuit"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+main {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .has-cursor [data-cursor],
+  .has-cursor [data-cursor] * {
+    cursor: none;
+  }
+}
+
+/* Masque des lignes de RevealText : évite de rogner les jambages du Bodoni. */
+.reveal-line {
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+/* ─── Transitions de page (View Transitions API) ──────────────────── */
+::view-transition-group(.morph) {
+  animation-duration: 900ms;
+  animation-timing-function: var(--ease-tide);
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 500ms;
+  animation-timing-function: var(--ease-tide);
+}
+
+/* ─── Pages juridiques ────────────────────────────────────────────── */
+.legal h2 {
+  margin-top: 1.5rem;
+  font-size: var(--text-h3);
+  line-height: var(--text-h3--line-height);
+}
+.legal p {
+  max-width: 66ch;
+  color: var(--muted);
+}

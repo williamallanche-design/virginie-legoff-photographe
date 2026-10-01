@@ -1,0 +1,55 @@
+# public_html/ (O2switch, Apache) — copié tel quel par `next build` à la racine de /out.
+
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # HTTPS partout (certificat AutoSSL de cPanel).
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Fichiers cachés (état du déploiement FTP, .htaccess…) : jamais servis, sauf .well-known (certificats).
+  RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+  # Versions lightbox (filigranées) : pas de lien direct depuis un autre site.
+  # (Apache n'interpole pas %{HTTP_HOST} dans un motif : on compare « hôte@@référent » avec une référence arrière.)
+  RewriteCond %{HTTP_REFERER} !^$
+  RewriteCond %{HTTP_HOST}@@%{HTTP_REFERER} !^([^@]+)@@https?://\1/ [NC]
+  RewriteRule ^media/[^/]+/lightbox\.webp$ - [F,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+  # Next.js injecte des scripts inline au build statique : 'unsafe-inline' est nécessaire pour script-src.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-src https://calendly.com; form-action 'self'; base-uri 'self'; frame-ancestors 'self'; object-src 'none'"
+
+  # Fichiers de build versionnés par leur nom : cache d'un an.
+  <If "%{REQUEST_URI} =~ m#^/_next/static/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+  # Photos et séquence du hero : un mois (un fichier peut être remplacé sous le même nom).
+  <If "%{REQUEST_URI} =~ m#^/(media|hero)/#">
+    Header set Cache-Control "public, max-age=2592000"
+  </If>
+  # Pages HTML et données de navigation : toujours revalidées après un déploiement.
+  <FilesMatch "\.(html|txt)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType image/webp .webp
+  AddType font/woff2 .woff2
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</IfModule>

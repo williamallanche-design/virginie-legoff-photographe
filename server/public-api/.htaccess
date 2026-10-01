@@ -1,0 +1,8 @@
+# public_html/api/ : seules les routes connues atteignent le routeur PHP.
+Options -Indexes
+RewriteEngine On
+RewriteBase /api/
+
+RewriteRule ^(checkout|stripe-webhook|inquiry|admin/[a-z-]+)/?$ index.php?route=$1 [QSA,L]
+
+# Tout le reste (y compris un appel direct à index.php sans route) : 404 renvoyé par le routeur.

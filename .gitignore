@@ -42,8 +42,12 @@ next-env.d.ts
 
 # médias générés (variantes WebP, frames du hero) : jamais versionnés, déployés à part
 /public/media/
-/public/hero/frames/
+/public/hero/desktop/
+/public/hero/mobile/
 /media-src/
 
 # secrets PHP
 /server/config.php
+/server/data/
+!.env.example
+/.playwright-mcp/
