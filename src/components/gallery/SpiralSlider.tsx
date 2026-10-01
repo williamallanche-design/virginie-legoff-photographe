@@ -31,16 +31,64 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
       const state = { p: 0 };
       let shown = 0;
 
+      const PERSPECTIVE = 1600; // identique à la perspective CSS de la scène
+      const GAP = 32; // vide minimal entre deux photos voisines, en px à l'écran
+      const scaleAt = (facing: number) => 0.86 + 0.26 * Math.max(0, facing) ** 6;
+      let geometry = { key: "", step: 0, radius: 0, rise: 0, reach: 0, shrink: 1 };
+      const fadeAt = (a: number, reach: number) => Math.min(1, Math.max(0, (reach - Math.abs(a)) / 0.4));
+
+      /**
+       * Espacement de l'hélice : on cherche le plus petit angle (spirale serrée, plafonné) puis,
+       * si besoin, une légère réduction des cartes, pour garantir un vide entre toutes les
+       * photos visibles, perspective et agrandissement de la photo de face compris.
+       */
+      const solve = (w: number, h: number, cw: number, ch: number) => {
+        const wide = w >= 768;
+        const radius = wide ? Math.min(w * 0.42, 720) : w * 0.78;
+        const rise = h * (wide ? 0.085 : 0.15);
+        const reach = wide ? 1.3 : 1.25; // au-delà (radians), la photo s'efface avant de passer de profil
+        const [minDeg, maxDeg] = wide ? [24, 44] : [34, 46];
+        // d : position sur l'hélice en nombre de photos (fractionnaire pendant le défilement).
+        const project = (d: number, step: number, shrink: number) => {
+          const a = d * step;
+          const f = PERSPECTIVE / (PERSPECTIVE + radius * (1 - Math.cos(a)));
+          const sc = scaleAt(Math.cos(a)) * f * shrink;
+          // Carte tournée : largeur apparente ≈ cos(a), le bord le plus proche un peu plus large.
+          const half = (cw / 2) * sc * (Math.abs(Math.cos(a)) + 0.08 * Math.abs(Math.sin(a)));
+          return { x: Math.sin(a) * radius * f, y: d * rise * f, half, halfH: (ch / 2) * sc, a };
+        };
+        // Toutes les paires de voisines visibles, aux positions exactes comme entre deux photos.
+        const fits = (step: number, shrink: number) => {
+          for (const offset of [0, 0.25, 0.5, 0.75]) {
+            for (let k = -4; k <= 3; k++) {
+              const p = project(k + offset, step, shrink);
+              const q = project(k + offset + 1, step, shrink);
+              // Les photos presque effacées en bout d'hélice ne comptent pas.
+              if (fadeAt(p.a, reach) < 0.3 || fadeAt(q.a, reach) < 0.3) continue;
+              const horizontal = Math.abs(q.x - p.x) - q.half - p.half >= GAP;
+              const vertical = Math.abs(q.y - p.y) - q.halfH - p.halfH >= GAP;
+              if (!horizontal && !vertical) return false;
+            }
+          }
+          return true;
+        };
+        for (let shrink = 1; shrink >= 0.6; shrink -= 0.02) {
+          for (let deg = minDeg; deg <= maxDeg; deg++) {
+            const step = (deg * Math.PI) / 180;
+            if (fits(step, shrink)) return { step, radius, rise, reach, shrink };
+          }
+        }
+        return { step: (maxDeg * Math.PI) / 180, radius, rise, reach, shrink: 0.6 };
+      };
+
       const render = () => {
         const w = stage.current!.clientWidth;
         const h = stage.current!.clientHeight;
-        const wide = w >= 768;
-        // Écran étroit : hélice plus ouverte et plus pentue, pour que les voisines
-        // s'écartent sur les côtés et en hauteur au lieu de s'empiler sur la photo de face.
-        const step = ((wide ? 24 : 42) * Math.PI) / 180; // angle entre deux photos sur l'hélice
-        const radius = wide ? Math.min(w * 0.42, 720) : w * 0.78;
-        const rise = h * (wide ? 0.085 : 0.15); // pas de l'hélice
-        const reach = wide ? 1.75 : 1.25; // au-delà (en radians), la photo s'efface
+        const cw = cards[0]?.offsetWidth ?? 0;
+        const ch = cards[0]?.offsetHeight ?? 0;
+        const key = `${w}x${h}x${cw}x${ch}`;
+        if (geometry.key !== key) geometry = { key, ...solve(w, h, cw, ch) };
+        const { step, radius, rise, reach, shrink } = geometry;
 
         cards.forEach((card, i) => {
           const d = i - state.p; // distance à la photo de face, en nombre de photos
@@ -50,8 +98,8 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
           const z = (Math.cos(a) - 1) * radius;
           const y = d * rise;
           // Au-delà de 75° la photo tourne le dos : elle s'efface avant de passer derrière l'axe.
-          const fade = Math.min(1, Math.max(0, (reach - Math.abs(a)) / 0.4));
-          card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(4)}rad) scale(${(0.86 + 0.26 * Math.max(0, facing) ** 6).toFixed(4)})`;
+          const fade = fadeAt(a, reach);
+          card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${a.toFixed(4)}rad) scale(${(scaleAt(facing) * shrink).toFixed(4)})`;
           card.style.opacity = fade.toFixed(3);
           card.style.visibility = fade > 0 ? "visible" : "hidden";
           card.style.pointerEvents = Math.abs(d) < 0.5 ? "auto" : "none";
