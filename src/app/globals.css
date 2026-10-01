@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* ─── Charte « Estran » ───────────────────────────────────────────────
+   Palette brute : toujours émise, utilisable partout (bg-papier, text-lueur…). */
+@theme static {
+  /* Humeur Papier */
+  --color-papier: #f2f1ed;
+  --color-laisse: #e5e3dd;
+  --color-galet: #cfccc5;
+  --color-schiste: #5b5f61;
+  --color-encre: #15181a;
+  --color-lueur-texte: #8f5a24;
+
+  /* Humeur Nuit */
+  --color-nuit: #0e1011;
+  --color-houle: #181b1d;
+  --color-brume: #2a2e31;
+  --color-embrun: #9a9c9a;
+  --color-ecume: #eceae5;
+  --color-lueur: #e0a666;
+
+  /* Mouvement */
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-tide: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Échelle typographique */
+  --text-display: clamp(3.5rem, 2rem + 8vw, 10rem);
+  --text-display--line-height: 0.9;
+  --text-display--letter-spacing: -0.03em;
+  --text-h1: clamp(2.5rem, 1.6rem + 4.5vw, 6rem);
+  --text-h1--line-height: 1;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: clamp(2rem, 1.4rem + 2.6vw, 3.75rem);
+  --text-h2--line-height: 1.05;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h3: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
+  --text-h3--line-height: 1.15;
+  --text-lead: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  --text-lead--line-height: 1.55;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.65;
+  --text-button: 0.8rem;
+  --text-button--line-height: 1;
+  --text-button--letter-spacing: 0.14em;
+  --text-meta: 0.72rem;
+  --text-meta--line-height: 1.4;
+  --text-meta--letter-spacing: 0.12em;
+
+  /* Garde-fous de la charte : pas d'angles arrondis, pas d'ombres, pas de flou décoratif.
+     Ces utilitaires n'existent tout simplement pas dans le projet. */
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --blur-*: initial;
+}
+
+/* Tokens sémantiques : leur valeur dépend de l'humeur de la section (data-mood). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-fg: var(--fg);
+  --color-accent: var(--accent);
+
+  --font-display: var(--font-bodoni), "Didot", "Bodoni 72", Georgia, serif;
+  --font-sans: var(--font-jost), "Futura", "Century Gothic", system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+:root,
+[data-mood="papier"] {
+  --bg: var(--color-papier);
+  --surface: var(--color-laisse);
+  --line: var(--color-galet);
+  --muted: var(--color-schiste);
+  --fg: var(--color-encre);
+  --accent: var(--color-lueur-texte);
+}
+
+[data-mood="nuit"] {
+  --bg: var(--color-nuit);
+  --surface: var(--color-houle);
+  --line: var(--color-brume);
+  --muted: var(--color-embrun);
+  --fg: var(--color-ecume);
+  --accent: var(--color-lueur);
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-wrap: balance;
+    font-variation-settings: "opsz" 96;
+  }
+
+  ::selection {
+    background: var(--color-lueur);
+    color: var(--color-encre);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 3px;
+  }
+}
+
+@utility meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: var(--text-meta--line-height);
+  letter-spacing: var(--text-meta--letter-spacing);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@utility gutter {
+  padding-inline: clamp(16px, 4vw, 64px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
