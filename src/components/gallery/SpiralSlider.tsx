@@ -88,7 +88,7 @@ export function SpiralSlider({ photos, header }: { photos: PhotoData[]; header?:
     <section
       ref={section}
       data-mood="nuit"
-      className="relative grid h-dvh grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden pt-[clamp(5rem,9vw,7rem)] pb-[max(env(safe-area-inset-bottom),1.75rem)] text-fg"
+      className="relative grid h-dvh grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-bg pt-[clamp(5rem,9vw,7rem)] pb-[max(env(safe-area-inset-bottom),1.75rem)] text-fg"
     >
       {header && <div className="gutter">{header}</div>}
 

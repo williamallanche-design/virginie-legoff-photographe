@@ -5,9 +5,9 @@ import { useEffect } from "react";
 import { ScrollTrigger } from "@/lib/gsap";
 
 /**
- * La marée : le fond du document prend l'humeur (Papier / Nuit) de la section qui occupe
- * le centre de l'écran. Les sections déclarent leur humeur via data-mood et restent
- * transparentes ; c'est <body> qui change de couleur, en transition CSS (courbe « tide »).
+ * La marée : <body> prend l'humeur de la section au centre de l'écran. Les sections peignent
+ * leur propre fond (contraste garanti) ; <body> ne se voit qu'aux bords (rebond du scroll mobile,
+ * barres du navigateur), où il prolonge la section en cours au lieu de trancher.
  */
 export function Tide() {
   const pathname = usePathname();
@@ -26,6 +26,8 @@ export function Tide() {
         start: "top 55%",
         end: "bottom 55%",
         onToggle: (self) => self.isActive && setMood(section.dataset.mood),
+        // Calculé après les sections épinglées, dont l'espace de défilement décale tout ce qui suit.
+        refreshPriority: -1,
       }),
     );
     return () => triggers.forEach((t) => t.kill());

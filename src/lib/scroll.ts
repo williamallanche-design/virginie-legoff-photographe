@@ -25,7 +25,7 @@ export function scrollToTop() {
 }
 
 /** Défilement animé vers une position (utilisé par les commandes des sections épinglées). */
-export function scrollToY(y: number) {
-  if (instance) instance.scrollTo(y, { duration: 1.2 });
+export function scrollToY(y: number, duration = 1.2) {
+  if (instance) instance.scrollTo(y, { duration });
   else window.scrollTo({ top: y, behavior: "smooth" });
 }

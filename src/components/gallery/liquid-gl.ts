@@ -1,37 +1,32 @@
-import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform } from "ogl";
+import { Camera, Mesh, Plane, Post, Program, Renderer, Texture, Transform } from "ogl";
 
 /*
- * Rendu WebGL du Liquid Carousel. Le DOM reste la source de vérité (mise en page, liens,
- * accessibilité) : chaque image du DOM est doublée d'un plan WebGL calé sur sa position,
- * qui se courbe et ondule selon la vitesse du défilement, avec une onde au survol.
+ * Rendu WebGL du Liquid Carousel, en deux passes :
+ *  1. le ruban de tirages : chaque image du DOM est doublée d'un plan WebGL calé sur sa position
+ *     (le DOM reste la source de vérité : mise en page, liens, accessibilité) ;
+ *  2. la lentille : le ruban est vu à travers une lentille de verre liquide inclinée.
+ *     Le centre est optiquement plat ; le bord comprime l'image, l'entraîne dans le sens du
+ *     mouvement, la décompose en spectre et s'illumine. Hors de la lentille, le ruban s'efface
+ *     dans une brume sombre.
  */
 
-const vertex = /* glsl */ `
+const planeVertex = /* glsl */ `
   attribute vec3 position;
   attribute vec2 uv;
   uniform mat4 modelViewMatrix;
   uniform mat4 projectionMatrix;
-  uniform float uVelocity;
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    vec3 p = position;
-    // La carte se creuse comme une nappe d'eau poussée par le geste.
-    p.y += sin(uv.x * 3.14159) * uVelocity * 0.09;
-    p.x += sin(uv.y * 3.14159) * uVelocity * 0.03;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
-const fragment = /* glsl */ `
+const planeFragment = /* glsl */ `
   precision highp float;
   uniform sampler2D tMap;
   uniform vec2 uImageSize;
   uniform vec2 uPlaneSize;
-  uniform vec2 uMouse;
-  uniform float uVelocity;
-  uniform float uHover;
-  uniform float uTime;
   uniform float uAlpha;
   varying vec2 vUv;
 
@@ -44,47 +39,84 @@ const fragment = /* glsl */ `
   }
 
   void main() {
-    vec2 uv = vUv;
-    float v = abs(uVelocity);
-
-    // Houle : ondulation proportionnelle à la vitesse.
-    uv.x += sin(uv.y * 11.0 + uTime * 2.2) * 0.014 * v;
-    uv.y += cos(uv.x * 9.0 + uTime * 1.7) * 0.009 * v;
-
-    // Ronds dans l'eau autour du pointeur.
-    vec2 d = (uv - uMouse) * vec2(uPlaneSize.x / uPlaneSize.y, 1.0);
-    float dist = length(d);
-    float ripple = sin(dist * 38.0 - uTime * 5.5) * 0.007 * uHover * smoothstep(0.5, 0.0, dist);
-    uv += normalize(d + 1e-5) * ripple;
-    uv = (uv - 0.5) * (1.0 - 0.045 * uHover) + 0.5;
-
-    vec2 c = cover(uv);
-    float shift = 0.007 * uVelocity;
-    vec3 col = vec3(
-      texture2D(tMap, c + vec2(shift, 0.0)).r,
-      texture2D(tMap, c).g,
-      texture2D(tMap, c - vec2(shift, 0.0)).b
-    );
+    vec3 col = texture2D(tMap, cover(vUv)).rgb;
     gl_FragColor = vec4(col * uAlpha, uAlpha);
   }
 `;
 
-type Item = {
-  el: HTMLElement;
-  mesh: Mesh;
-  program: Program;
-  hover: number;
-  loadedAt: number | null;
-};
+const lensFragment = /* glsl */ `
+  precision highp float;
+  uniform sampler2D tMap;
+  uniform vec2 uResolution;
+  uniform vec2 uLens;      // demi-axes de la lentille, en px
+  uniform float uTilt;     // inclinaison, en radians
+  uniform float uVelocity; // -1..1
+  uniform float uTime;
+  uniform vec3 uGlow;
+  varying vec2 vUv;
+
+  vec4 sampleAt(vec2 px) {
+    return texture2D(tMap, clamp(px / uResolution, 0.0, 1.0));
+  }
+
+  void main() {
+    vec2 px = vUv * uResolution;
+    vec2 c = uResolution * 0.5;
+    vec2 d = px - c;
+    float cs = cos(uTilt), sn = sin(uTilt);
+    vec2 p = vec2(cs * d.x + sn * d.y, -sn * d.x + cs * d.y);   // repère de la lentille
+    vec2 q = p / uLens;
+    float theta = atan(q.y, q.x);
+    float r = length(q);
+    // Bord liquide : la lentille respire légèrement.
+    r += sin(theta * 3.0 + uTime * 0.7) * 0.010 + sin(theta * 5.0 - uTime * 1.1) * 0.006;
+
+    float v = clamp(uVelocity, -1.0, 1.0);
+    float band = smoothstep(0.62, 1.0, r) * (1.0 - step(1.0, r));   // anneau réfractant
+    float edge = pow(band, 1.6);
+
+    // Direction radiale dans le repère écran.
+    vec2 radial = normalize(d + 1e-4);
+    // Réfraction : le bord aspire l'image vers l'intérieur et l'entraîne avec le mouvement.
+    vec2 offset = -radial * edge * 0.09 * min(uLens.x, uLens.y);
+    offset.x -= v * edge * 0.22 * uLens.x;
+    vec2 base = px + offset;
+
+    // Spectre : les trois canaux ne sont pas déviés de la même façon.
+    float spread = edge * (3.0 + abs(v) * 28.0);
+    vec4 sr = sampleAt(base + radial * spread);
+    vec4 sg = sampleAt(base);
+    vec4 sb = sampleAt(base - radial * spread);
+    vec4 inside = vec4(sr.r, sg.g, sb.b, max(sg.a, max(sr.a, sb.a)));
+
+    // Hors de la lentille : brume sombre et désaturée.
+    vec4 plain = sampleAt(px);
+    float grey = dot(plain.rgb, vec3(0.299, 0.587, 0.114));
+    vec4 fog = vec4(mix(plain.rgb, vec3(grey), 0.55) * 0.28, plain.a * 0.9);
+
+    float outside = smoothstep(0.995, 1.02, r);
+    vec4 col = mix(inside, fog, outside);
+
+    // Contour lumineux du verre, plus vif quand le ruban glisse.
+    float rim = exp(-pow((r - 1.0) * 34.0, 2.0)) * (0.32 + abs(v) * 0.9);
+    float sheen = exp(-pow((r - 0.9) * 10.0, 2.0)) * 0.05 * (0.6 + 0.4 * sin(theta * 2.0 - 0.6));
+    vec3 light = uGlow * (rim + sheen);
+    gl_FragColor = vec4(col.rgb + light, max(col.a, clamp(rim + sheen, 0.0, 1.0)));
+  }
+`;
+
+type Item = { el: HTMLElement; mesh: Mesh; program: Program; loadedAt: number | null };
+type Uniforms = Record<string, { value: unknown }>;
 
 export class LiquidGL {
   private renderer: Renderer;
   private camera: Camera;
   private scene = new Transform();
+  private post: Post;
+  private lens: Uniforms;
   private items: Item[] = [];
   private velocity = 0;
   private targetVelocity = 0;
-  private mouse = { x: -1e4, y: -1e4 };
   private start = performance.now();
   private canvas: HTMLCanvasElement;
   private observer: ResizeObserver;
@@ -99,46 +131,66 @@ export class LiquidGL {
     this.canvas.setAttribute("aria-hidden", "true");
     this.canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
     container.appendChild(this.canvas);
-    this.renderer = new Renderer({ canvas: this.canvas, alpha: true, premultipliedAlpha: true, antialias: true, dpr: Math.min(window.devicePixelRatio || 1, 2) });
+
+    this.renderer = new Renderer({
+      canvas: this.canvas,
+      alpha: true,
+      premultipliedAlpha: true,
+      antialias: true,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+    });
     const gl = this.renderer.gl;
     gl.clearColor(0, 0, 0, 0);
     this.camera = new Camera(gl, { left: -1, right: 1, top: 1, bottom: -1, near: 0.1, far: 100 });
     this.camera.position.z = 10;
-    const geometry = new Plane(gl, { widthSegments: 32, heightSegments: 16 });
 
+    const geometry = new Plane(gl);
     for (const el of elements) {
       const texture = new Texture(gl, { generateMipmaps: false });
       const program = new Program(gl, {
-        vertex,
-        fragment,
+        vertex: planeVertex,
+        fragment: planeFragment,
         transparent: true,
         uniforms: {
           tMap: { value: texture },
           uImageSize: { value: [1, 1] },
           uPlaneSize: { value: [1, 1] },
-          uMouse: { value: [0.5, 0.5] },
-          uVelocity: { value: 0 },
-          uHover: { value: 0 },
-          uTime: { value: 0 },
           uAlpha: { value: 0 },
         },
       });
       const mesh = new Mesh(gl, { geometry, program });
       mesh.frustumCulled = false; // positions en pixels : le test de frustum d'ogl ne s'applique pas
       mesh.setParent(this.scene);
-      const item: Item = { el, mesh, program, hover: 0, loadedAt: null };
+      const item: Item = { el, mesh, program, loadedAt: null };
       this.items.push(item);
 
       const img = new Image();
       img.decoding = "async";
       img.src = el.dataset.src!;
-      img.decode().then(() => {
-        texture.image = img;
-        program.uniforms.uImageSize.value = [img.naturalWidth, img.naturalHeight];
-        item.loadedAt = performance.now();
-        onReady(el);
-      }).catch(() => {});
+      img
+        .decode()
+        .then(() => {
+          texture.image = img;
+          program.uniforms.uImageSize.value = [img.naturalWidth, img.naturalHeight];
+          item.loadedAt = performance.now();
+          onReady(el);
+        })
+        .catch(() => {});
     }
+
+    this.post = new Post(gl);
+    this.lens = this.post.addPass({
+      fragment: lensFragment,
+      uniforms: {
+        uResolution: { value: [1, 1] },
+        uLens: { value: [1, 1] },
+        uTilt: { value: -0.12 },
+        uVelocity: { value: 0 },
+        uTime: { value: 0 },
+        uGlow: { value: [1.0, 0.86, 0.68] }, // Lueur, adoucie
+      },
+    }).uniforms as Uniforms;
+
     this.resize();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(container);
@@ -149,40 +201,41 @@ export class LiquidGL {
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     this.renderer.setSize(w, h);
+    this.post.resize();
     this.camera.orthographic({ left: -w / 2, right: w / 2, top: h / 2, bottom: -h / 2, near: 0.1, far: 100 });
+    this.lens.uResolution.value = [w, h];
   }
 
   setVelocity(v: number) {
     this.targetVelocity = Math.max(-1, Math.min(1, v));
   }
 
-  setPointer(x: number, y: number) {
-    this.mouse = { x, y };
-  }
-
   render() {
     const box = this.canvas.getBoundingClientRect();
-    this.velocity += (this.targetVelocity - this.velocity) * 0.08;
-    const time = (performance.now() - this.start) / 1000;
+    this.velocity += (this.targetVelocity - this.velocity) * 0.12;
+    const now = performance.now();
+
+    // Lentille calée sur une carte : le tirage central tient dans la zone plate,
+    // ses voisins n'apparaissent que déformés par le bord.
+    const card = this.items[0]?.el.getBoundingClientRect();
+    if (card && card.height > 0) {
+      const narrow = box.width < 768;
+      this.lens.uLens.value = [Math.min(card.width * (narrow ? 0.64 : 0.78), box.width * 0.47), card.height * (narrow ? 0.56 : 0.6)];
+    }
 
     for (const item of this.items) {
       const r = item.el.getBoundingClientRect();
       const u = item.program.uniforms;
       item.mesh.scale.set(r.width, r.height, 1);
       item.mesh.position.set(r.left + r.width / 2 - box.left - box.width / 2, -(r.top + r.height / 2 - box.top - box.height / 2), 0);
-
-      const inside = this.mouse.x >= r.left && this.mouse.x <= r.right && this.mouse.y >= r.top && this.mouse.y <= r.bottom;
-      item.hover += ((inside ? 1 : 0) - item.hover) * 0.07;
-      if (inside) u.uMouse.value = [(this.mouse.x - r.left) / r.width, 1 - (this.mouse.y - r.top) / r.height];
-
       u.uPlaneSize.value = [r.width, r.height];
-      u.uVelocity.value = this.velocity;
-      u.uHover.value = item.hover;
-      u.uTime.value = time;
       // Fondu d'apparition de 600 ms, indépendant de la cadence d'affichage.
-      u.uAlpha.value = item.loadedAt === null ? 0 : Math.min(1, (performance.now() - item.loadedAt) / 600);
+      u.uAlpha.value = item.loadedAt === null ? 0 : Math.min(1, (now - item.loadedAt) / 600);
     }
-    this.renderer.render({ scene: this.scene, camera: this.camera });
+
+    this.lens.uVelocity.value = this.velocity;
+    this.lens.uTime.value = (now - this.start) / 1000;
+    this.post.render({ scene: this.scene, camera: this.camera });
   }
 
   destroy() {
