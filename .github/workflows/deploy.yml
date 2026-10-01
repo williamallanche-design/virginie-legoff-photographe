@@ -32,7 +32,7 @@ jobs:
       - name: Build statique
         run: npm run build
         env:
-          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://virginielegoff.fr' }}
 
       - name: Point d'entrée PHP de l'API (public_html/api)
         run: |

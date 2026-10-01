@@ -4,6 +4,7 @@ import "lenis/dist/lenis.css";
 import "./globals.css";
 import { Cursor } from "@/components/motion/Cursor";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { siteUrl } from "@/lib/catalog";
 
 // Polices auto-hébergées au build : aucun appel à Google côté visiteur.
 const bodoni = Bodoni_Moda({
@@ -29,8 +30,8 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  // `||` et non `??` : en CI, une variable de dépôt absente arrive sous forme de chaîne vide.
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  metadataBase: new URL(siteUrl),
+  alternates: { canonical: "./" },
   title: {
     default: "Virginie Legoff · Photographe d'art & d'événements",
     template: "%s · Virginie Legoff",

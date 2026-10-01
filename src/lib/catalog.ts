@@ -35,6 +35,9 @@ export type PrintFormat = { id: string; label: string; widthCm: number; heightCm
 export type PrintSupport = { id: string; name: string; finish: string; pricesCents: Record<string, number> };
 
 export const site = siteJson;
+
+/** Adresse publique : variable d'environnement en développement, domaine du site sinon. */
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || siteJson.url).replace(/\/$/, "");
 export const prints = printsJson as unknown as {
   currency: string;
   minDpi: number;

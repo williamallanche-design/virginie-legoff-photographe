@@ -24,7 +24,8 @@ rangés **hors** de `public_html`. Aucune base de données.
    `gd`, `curl`, `fileinfo`, `mbstring`, `exif`, `intl`.
 2. **MultiPHP INI Editor** (sur le domaine) :
    `upload_max_filesize = 40M`, `post_max_size = 42M`, `memory_limit = 1024M`, `max_execution_time = 180`.
-3. **SSL/TLS Status** : lancer AutoSSL sur le domaine et le `www`.
+3. **SSL/TLS Status** : lancer AutoSSL sur `virginielegoff.fr` et `www.virginielegoff.fr`
+   (le `www` est redirigé vers `https://virginielegoff.fr` par le `.htaccess`).
 4. **Email Deliverability** : vérifier que SPF et DKIM sont « valides » pour l'adresse d'envoi
    (`mail.from` dans config.php). Sans cela, les notifications finissent en indésirables.
 
@@ -49,7 +50,7 @@ Dépôt → Settings → Secrets and variables → Actions :
 | Secret   | `FTP_HOST`     | serveur FTP O2switch (nom d'hôte du compte, voir cPanel)    |
 | Secret   | `FTP_USER`     | identifiant cPanel (compte FTP principal, racine = home)    |
 | Secret   | `FTP_PASSWORD` | mot de passe du compte FTP                                  |
-| Variable | `SITE_URL`     | `https://www.domaine.fr` (sans barre finale)                |
+| Variable | `SITE_URL`     | facultative : `https://virginielegoff.fr` par défaut        |
 
 Chaque push sur `main` reconstruit et déploie le site (2 à 3 minutes). Lancement manuel :
 onglet Actions → « Déploiement O2switch » → *Run workflow*.
@@ -72,7 +73,7 @@ les variantes WebP et la version filigranée directement sur le serveur.
 1. Dashboard → Développeurs → Clés API : copier la clé secrète (`sk_test_…` pour les essais,
    `sk_live_…` en production) dans `config.php`.
 2. Dashboard → Webhooks → *Ajouter un point de terminaison* :
-   - URL : `https://www.domaine.fr/api/stripe-webhook`
+   - URL : `https://virginielegoff.fr/api/stripe-webhook`
    - Événements : `checkout.session.completed`, `checkout.session.async_payment_succeeded`
    - Copier la *clé secrète de signature* (`whsec_…`) dans `config.php`.
 3. Paramètres → E-mails clients : activer « Paiements réussis » pour le reçu Stripe.

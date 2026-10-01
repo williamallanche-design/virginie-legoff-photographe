@@ -7,7 +7,7 @@ return [
     'env' => 'production', // 'development' en local : cookies non « Secure » (http)
 
     // Adresse publique du site, sans barre finale (URLs de retour Stripe).
-    'site_url' => 'https://www.exemple.fr',
+    'site_url' => 'https://virginielegoff.fr',
 
     // Origines autorisées en CORS : uniquement pour le développement local.
     'cors_origins' => [],
@@ -39,7 +39,7 @@ return [
     'mail' => [
         'transport' => 'mail', // 'log' en local : écrit dans data/logs/mail.log
         'to' => '',            // adresse de Virginie (demandes et commandes)
-        'from' => '',          // adresse du domaine, ex. contact@domaine.fr (SPF/DKIM actifs dans cPanel)
+        'from' => 'contact@virginielegoff.fr', // boîte à créer dans cPanel (SPF/DKIM actifs)
         'from_name' => 'Virginie Legoff',
     ],
 
