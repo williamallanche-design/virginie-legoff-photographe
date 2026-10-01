@@ -51,3 +51,6 @@ next-env.d.ts
 /server/data/
 !.env.example
 /.playwright-mcp/
+
+# paquets de mise en ligne générés localement
+/deploy/

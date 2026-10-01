@@ -102,7 +102,7 @@ l'échange préalable par e-mail.
 
 ```bash
 npm install
-cp .env.example .env.local
+cp .env.example .env.development.local
 npm run dev                         # http://localhost:3000
 npm run php                         # API PHP sur http://localhost:8000 (php dans le PATH)
 npm run import                      # régénère public/media depuis les photos sources

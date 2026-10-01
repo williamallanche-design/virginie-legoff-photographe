@@ -7,7 +7,7 @@ Site vitrine et boutique de tirages d'art. Next.js en export statique, scripts P
 
 ```bash
 npm install
-cp .env.example .env.local
+cp .env.example .env.development.local
 npm run dev      # site : http://localhost:3000
 npm run php      # API PHP : http://localhost:8000 (formulaire, panier, admin)
 npm run build    # site statique dans /out
