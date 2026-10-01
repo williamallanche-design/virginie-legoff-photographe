@@ -1,146 +1,170 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { animate, motion, useMotionValue, useSpring, useTransform, useVelocity } from "motion/react";
+import { useRef, useState, type ReactNode } from "react";
 import { Photo } from "@/components/site/Photo";
-import { titleOf, type Photo as PhotoData } from "@/lib/catalog";
+import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { useMediaQuery } from "@/lib/media-query";
+import { scrollToY } from "@/lib/scroll";
+import { mediaSrc, titleOf, type Photo as PhotoData } from "@/lib/catalog";
+import { LiquidGL } from "./liquid-gl";
 
 export type CarouselItem = { photo: PhotoData; href: string; caption: string | null };
 
-const TIDE = [0.65, 0, 0.35, 1] as const;
-
 /**
- * Carrousel horizontal : glisser avec inertie, molette horizontale, flèches du clavier.
- * Les cartes s'inclinent et se resserrent selon la vitesse du geste, puis se reposent.
+ * Liquid Carousel : la section s'épingle et le scroll vertical fait défiler les tirages
+ * à l'horizontale. Les images sont rendues en WebGL (courbure et houle selon la vitesse,
+ * ronds dans l'eau au survol). Sans WebGL, les images du DOM restent affichées telles quelles.
  */
-export function LiquidCarousel({ items, label }: { items: CarouselItem[]; label: string }) {
+export function LiquidCarousel({ items, label, header }: { items: CarouselItem[]; label: string; header?: ReactNode }) {
+  const root = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
-  const moved = useRef(false);
-  const [minX, setMinX] = useState(0);
+  const layer = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLSpanElement>(null);
+  const trigger = useRef<ScrollTrigger | null>(null);
+  const [index, setIndex] = useState(0);
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const n = items.length;
 
-  const x = useMotionValue(0);
-  const velocity = useVelocity(x);
-  const skewX = useSpring(useTransform(velocity, [-2400, 0, 2400], [7, 0, -7], { clamp: true }), {
-    stiffness: 180,
-    damping: 26,
-  });
-  const scale = useSpring(useTransform(velocity, [-2400, 0, 2400], [0.94, 1, 0.94], { clamp: true }), {
-    stiffness: 180,
-    damping: 26,
-  });
-  const progress = useTransform(x, [0, Math.min(-1, minX)], [0, 1], { clamp: true });
+  useGSAP(
+    () => {
+      if (reduced || !track.current || !viewport.current || !root.current) return;
+      const distance = () => Math.max(0, track.current!.scrollWidth - viewport.current!.clientWidth);
+      const cards = gsap.utils.toArray<HTMLElement>("[data-card]", track.current);
+      let gl: LiquidGL | null = null;
 
-  useEffect(() => {
-    const measure = () => {
-      if (!viewport.current || !track.current) return;
-      const min = Math.min(0, viewport.current.clientWidth - track.current.scrollWidth);
-      setMinX(min);
-      if (x.get() < min) x.set(min);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (viewport.current) ro.observe(viewport.current);
-    if (track.current) ro.observe(track.current);
-    return () => ro.disconnect();
-  }, [x, items.length]);
+      try {
+        gl = new LiquidGL(layer.current!, gsap.utils.toArray<HTMLElement>("[data-media]", track.current), (el) => {
+          // Le plan WebGL a pris le relais : l'image du DOM et son fond s'effacent.
+          el.dataset.gl = "ready";
+          el.style.backgroundColor = "transparent";
+        });
+      } catch {
+        gl = null; // pas de WebGL : on garde les images du DOM
+      }
 
-  const clampX = (v: number) => Math.max(minX, Math.min(0, v));
-  const glide = (to: number) => animate(x, clampX(to), { duration: 1.1, ease: TIDE });
-  const page = () => (viewport.current?.clientWidth ?? 800) * 0.8;
+      const tween = gsap.to(track.current, {
+        x: () => -distance(),
+        ease: "none",
+        scrollTrigger: {
+          trigger: root.current,
+          start: "top top",
+          end: () => `+=${distance()}`,
+          pin: true,
+          scrub: 0.8,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            if (bar.current) bar.current.style.transform = `scaleX(${self.progress})`;
+            const centre = self.progress * distance() + viewport.current!.clientWidth / 2;
+            const i = cards.findIndex((c) => c.offsetLeft + c.offsetWidth > centre);
+            setIndex(i < 0 || self.progress > 0.985 ? n - 1 : i);
+          },
+        },
+      });
+      trigger.current = tween.scrollTrigger ?? null;
 
-  // Molette / pavé tactile horizontal uniquement : le scroll vertical de la page reste libre.
-  useEffect(() => {
-    const el = viewport.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-      e.preventDefault();
-      x.set(Math.max(minX, Math.min(0, x.get() - e.deltaX)));
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [minX, x]);
+      // Rendu WebGL seulement quand la section est à l'écran (test direct : la section épinglée
+      // passe en position fixe, ce qu'IntersectionObserver ne suit pas de façon fiable).
+      // Vitesse mesurée sur le déplacement réel de la piste : nulle dès que la piste s'arrête.
+      let lastX = 0;
+      let lastT = performance.now();
+      const tick = () => {
+        const x = Number(gsap.getProperty(track.current, "x")) || 0;
+        const now = performance.now();
+        const speed = ((x - lastX) / Math.max(8, now - lastT)) * 1000; // px/s
+        lastX = x;
+        lastT = now;
+        gl?.setVelocity(-speed / 2200);
+        const r = root.current?.getBoundingClientRect();
+        if (r && r.bottom > 0 && r.top < window.innerHeight) gl?.render();
+      };
+      gsap.ticker.add(tick);
+      const onMove = (e: PointerEvent) => gl?.setPointer(e.clientX, e.clientY);
+      window.addEventListener("pointermove", onMove, { passive: true });
 
-  // Le focus clavier amène la carte dans le cadre.
-  const onFocus = (e: React.FocusEvent<HTMLDivElement>) => {
-    const card = (e.target as HTMLElement).closest<HTMLElement>("[data-card]");
-    if (!card || !viewport.current) return;
-    const left = card.offsetLeft + x.get();
-    const right = left + card.offsetWidth;
-    const w = viewport.current.clientWidth;
-    if (left < 0 || right > w) glide(-card.offsetLeft + (w - card.offsetWidth) / 2);
-  };
+      return () => {
+        gsap.ticker.remove(tick);
+        window.removeEventListener("pointermove", onMove);
+        gl?.destroy();
+        trigger.current = null;
+      };
+    },
+    { scope: root, dependencies: [reduced, n] },
+  );
 
-  const blockClickAfterDrag = (e: ReactMouseEvent) => {
-    if (moved.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  /** Amène la carte i au centre en déplaçant le scroll de la page (la section est épinglée). */
+  const goTo = (i: number) => {
+    const st = trigger.current;
+    const card = track.current?.querySelectorAll<HTMLElement>("[data-card]")[i];
+    if (!st || !card || !viewport.current) return;
+    const max = track.current!.scrollWidth - viewport.current.clientWidth;
+    const target = Math.max(0, Math.min(max, card.offsetLeft - (viewport.current.clientWidth - card.offsetWidth) / 2));
+    scrollToY(st.start + (max ? target / max : 0) * (st.end - st.start));
   };
 
   return (
-    <div className="grid gap-8">
+    <div
+      ref={root}
+      className={`relative grid ${reduced ? "" : "h-dvh"} grid-rows-[auto_minmax(0,1fr)_auto] gap-[clamp(1.5rem,4vh,3rem)] pt-[clamp(5rem,9vw,7rem)] pb-[max(env(safe-area-inset-bottom),1.75rem)]`}
+    >
+      {header && <div className="gutter">{header}</div>}
+
       <div
         ref={viewport}
         role="region"
         aria-roledescription="carrousel"
         aria-label={label}
-        className="overflow-hidden"
-        onKeyDown={(e) => {
-          if (e.key === "ArrowRight") glide(x.get() - page());
-          if (e.key === "ArrowLeft") glide(x.get() + page());
-        }}
+        className={`relative min-h-0 ${reduced ? "h-[62vh] overflow-x-auto" : "overflow-hidden"}`}
       >
-        <motion.div
-          ref={track}
-          drag="x"
-          dragConstraints={{ left: minX, right: 0 }}
-          dragElastic={0.08}
-          dragTransition={{ power: 0.32, timeConstant: 380, bounceStiffness: 260, bounceDamping: 32 }}
-          onDragStart={() => (moved.current = true)}
-          onDragEnd={() => window.setTimeout(() => (moved.current = false), 60)}
-          onClickCapture={blockClickAfterDrag}
-          onFocus={onFocus}
-          style={{ x }}
-          data-cursor="Glisser"
-          className="flex w-max cursor-grab gap-[clamp(16px,2.4vw,40px)] active:cursor-grabbing"
-        >
-          {items.map(({ photo, href, caption }) => (
-            <motion.div key={photo.slug} data-card style={{ skewX, scale }} className="w-[clamp(240px,27vw,440px)] shrink-0">
-              <Link href={href} draggable={false} className="group block" data-cursor="Voir">
-                <div className="relative aspect-[4/5] overflow-hidden" style={{ backgroundColor: photo.color }}>
-                  <Photo
-                    photo={photo}
-                    fill
-                    sizes="(min-width: 768px) 28vw, 70vw"
-                    className="pointer-events-none object-cover transition-transform duration-[1.2s] ease-reveal group-hover:scale-[1.04]"
-                  />
-                </div>
-                <div className="mt-4 flex items-baseline justify-between gap-4">
-                  <span className="font-display text-[1.15rem] leading-snug italic">{titleOf(photo)}</span>
-                  {caption && <span className="meta shrink-0">{caption}</span>}
-                </div>
-              </Link>
-            </motion.div>
+        <div ref={track} className="gutter flex h-full w-max items-center gap-[clamp(16px,2.6vw,44px)]">
+          {items.map(({ photo, href, caption }, i) => (
+            <Link
+              key={photo.slug}
+              href={href}
+              data-card
+              data-cursor="Voir"
+              draggable={false}
+              onFocus={() => goTo(i)}
+              className="group grid shrink-0 gap-4"
+            >
+              <div
+                data-media
+                data-src={`${mediaSrc(photo)}/960.webp`}
+                className="relative aspect-[4/5] h-[min(52vh,560px)] max-w-[78vw] overflow-hidden data-[gl=ready]:[&_img]:opacity-0"
+                style={{ backgroundColor: photo.color }}
+              >
+                <Photo photo={photo} fill sizes="(min-width: 768px) 30vw, 75vw" className="object-cover transition-opacity duration-500" />
+              </div>
+              <div className="flex items-baseline justify-between gap-4 [contain:inline-size]">
+                <span className="font-display text-[1.15rem] leading-snug italic">{titleOf(photo)}</span>
+                {caption && <span className="meta shrink-0">{caption}</span>}
+              </div>
+            </Link>
           ))}
-        </motion.div>
+        </div>
+        {/* Couche WebGL : alignée sur la zone du carrousel, transparente aux clics. */}
+        <div ref={layer} aria-hidden className="pointer-events-none absolute inset-0" />
       </div>
 
-      <div className="flex items-center gap-6">
-        <span aria-hidden className="relative h-px flex-1 bg-line">
-          <motion.span style={{ scaleX: progress }} className="absolute inset-0 origin-left bg-fg" />
-        </span>
-        <div className="flex gap-5">
-          <button type="button" onClick={() => glide(x.get() + page())} className="meta link-line text-fg">
-            Précédent
-          </button>
-          <button type="button" onClick={() => glide(x.get() - page())} className="meta link-line text-fg">
-            Suivant
-          </button>
+      {!reduced && (
+        <div className="gutter flex items-center gap-6">
+          <span className="meta tabular-nums text-fg">
+            {String(index + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
+          </span>
+          <span aria-hidden className="relative h-px flex-1 bg-line">
+            <span ref={bar} className="absolute inset-0 origin-left scale-x-0 bg-fg" />
+          </span>
+          <div className="flex gap-5">
+            <button type="button" onClick={() => goTo(Math.max(0, index - 1))} className="meta link-line text-fg">
+              Précédent
+            </button>
+            <button type="button" onClick={() => goTo(Math.min(n - 1, index + 1))} className="meta link-line text-fg">
+              Suivant
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

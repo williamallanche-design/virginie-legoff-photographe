@@ -77,7 +77,35 @@ export function WaveGallery({ photos, onOpen, morph = false, labelOf }: Props) {
             rest = window.setTimeout(() => skewTo(0), 140);
           },
         });
-        return () => window.clearTimeout(rest);
+        // La vague : chaque image se déporte latéralement selon sa hauteur dans l'écran,
+        // comme une houle qui remonte la page. Lecture de toutes les positions, puis écriture.
+        let inView = false;
+        ScrollTrigger.create({
+          trigger: root.current,
+          start: "top bottom",
+          end: "bottom top",
+          onToggle: (self) => (inView = self.isActive),
+        });
+        const sway = () => {
+          if (!inView) return;
+          const vh = window.innerHeight;
+          const amplitude = Math.min(window.innerWidth * 0.028, 48);
+          const ys = items.map((el) => {
+            const r = el.getBoundingClientRect();
+            return (r.top + r.height / 2) / vh;
+          });
+          items.forEach((el, i) => {
+            const t = ys[i];
+            if (t < -0.5 || t > 1.5) return;
+            gsap.set(el, { x: Math.sin(t * Math.PI * 1.5) * amplitude, rotation: Math.cos(t * Math.PI * 1.5) * 1.2 });
+          });
+        };
+        gsap.ticker.add(sway);
+
+        return () => {
+          window.clearTimeout(rest);
+          gsap.ticker.remove(sway);
+        };
       });
       return () => mm.revert();
     },

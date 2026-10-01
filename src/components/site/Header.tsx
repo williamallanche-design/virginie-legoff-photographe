@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cartCount, useCart } from "@/lib/cart";
 import { lockScroll, unlockScroll } from "@/lib/scroll";
+import { ScrollTrigger } from "@/lib/gsap";
 
 const NAV = [
   { href: "/galeries/", label: "Galeries" },
@@ -35,12 +36,27 @@ export function Header() {
     };
   }, [open]);
 
+  // Masqué quand on descend (pour ne pas chevaucher les titres), réaffiché dès qu'on remonte.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const st = ScrollTrigger.create({
+      start: 0,
+      end: "max",
+      onUpdate: (self) => setHidden(self.direction === 1 && self.scroll() > 160),
+    });
+    return () => st.kill();
+  }, []);
+
   const active = (href: string) => pathname.startsWith(href);
 
   return (
     <>
       {/* mix-blend-difference : le texte Écume reste lisible sur Papier comme sur Nuit */}
-      <header className="gutter pointer-events-none fixed inset-x-0 top-0 z-50 pt-[max(env(safe-area-inset-top),1.25rem)] text-ecume mix-blend-difference">
+      <header
+        className={`gutter pointer-events-none fixed inset-x-0 top-0 z-50 pt-[max(env(safe-area-inset-top),1.25rem)] text-ecume mix-blend-difference transition-transform duration-700 ease-tide ${
+          hidden && !open ? "-translate-y-[140%]" : ""
+        }`}
+      >
         <div className="flex items-baseline justify-between gap-6">
           <Link href="/" className="pointer-events-auto font-display text-[1.35rem] leading-none tracking-[0.01em]">
             Virginie Legoff

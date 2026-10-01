@@ -2,7 +2,7 @@ import Link from "next/link";
 import heroManifest from "@content/hero.json";
 import { HeroScrub } from "@/components/hero/HeroScrub";
 import { LiquidCarousel } from "@/components/gallery/LiquidCarousel";
-import { WaveGallery } from "@/components/gallery/WaveGallery";
+import { SpiralSlider } from "@/components/gallery/SpiralSlider";
 import { RevealFade, RevealImage, RevealText } from "@/components/motion/Reveal";
 import { Photo } from "@/components/site/Photo";
 import { Section } from "@/components/site/Section";
@@ -66,18 +66,20 @@ export default function Home() {
         </div>
       </Section>
 
-      <Section mood="nuit" className="gutter py-[clamp(6rem,12vw,10rem)]">
-        <div className="mb-[clamp(3rem,8vw,7rem)] grid gap-y-6 md:grid-cols-12 md:gap-x-8">
-          <p className="meta md:col-span-3">Sélection</p>
-          <RevealText as="h2" className="text-h1 md:col-span-6">
-            Ce que la marée <em className="text-accent">découvre</em>
-          </RevealText>
-          <RevealFade className="self-end md:col-span-3">
-            <Link href="/galeries/" className="link-text">Toutes les galeries</Link>
-          </RevealFade>
-        </div>
-        <WaveGallery photos={wave} morph />
-      </Section>
+      <SpiralSlider
+        photos={wave}
+        header={
+          <div className="grid gap-y-4 md:grid-cols-12 md:gap-x-8">
+            <p className="meta md:col-span-3">Sélection · {wave.length} photographies</p>
+            <h2 className="text-h2 md:col-span-6">
+              Ce que la marée <em className="text-accent">découvre</em>
+            </h2>
+            <Link href="/galeries/" className="link-text w-fit self-end md:col-span-3 md:justify-self-end">
+              Toutes les galeries
+            </Link>
+          </div>
+        }
+      />
 
       <Section mood="papier" className="gutter py-[clamp(6rem,12vw,10rem)]">
         <div className="mb-12 grid gap-y-6 md:grid-cols-12 md:gap-x-8">
@@ -116,29 +118,29 @@ export default function Home() {
         </ul>
       </Section>
 
-      <Section mood="nuit" className="py-[clamp(6rem,12vw,10rem)]">
-        <div className="gutter mb-[clamp(3rem,6vw,5rem)] grid gap-y-6 md:grid-cols-12 md:gap-x-8">
-          <p className="meta md:col-span-3">Tirages d&apos;art</p>
-          <RevealText as="h2" className="text-h1 md:col-span-6">
-            À accrocher <em className="text-accent">chez soi</em>
-          </RevealText>
-          <RevealFade className="grid content-end gap-4 md:col-span-3">
-            <p className="text-muted">
-              {prints.supports.length} supports, {prints.formats.length} formats, à partir de {euros(fromPrice)}.
-            </p>
-            <Link href="/tirages/" className="link-text w-fit">Tous les tirages</Link>
-          </RevealFade>
-        </div>
-        <div className="pl-[clamp(16px,4vw,64px)]">
-          <LiquidCarousel
-            label="Tirages d'art disponibles"
-            items={carousel.map((p) => ({
-              photo: p,
-              href: `/oeuvres/${p.slug}/`,
-              caption: `dès ${euros(lowestPrice(p)!)}`,
-            }))}
-          />
-        </div>
+      <Section mood="nuit">
+        <LiquidCarousel
+          label="Tirages d'art disponibles"
+          items={carousel.map((p) => ({
+            photo: p,
+            href: `/oeuvres/${p.slug}/`,
+            caption: `dès ${euros(lowestPrice(p)!)}`,
+          }))}
+          header={
+            <div className="grid gap-y-4 md:grid-cols-12 md:gap-x-8">
+              <p className="meta md:col-span-3">Tirages d&apos;art</p>
+              <h2 className="text-h2 md:col-span-6">
+                À accrocher <em className="text-accent">chez soi</em>
+              </h2>
+              <div className="grid content-end gap-2 md:col-span-3">
+                <p className="text-muted">
+                  {prints.supports.length} supports, {prints.formats.length} formats, à partir de {euros(fromPrice)}.
+                </p>
+                <Link href="/tirages/" className="link-text w-fit">Tous les tirages</Link>
+              </div>
+            </div>
+          }
+        />
       </Section>
 
       <Section mood="papier" className="gutter py-[clamp(6rem,12vw,10rem)]">

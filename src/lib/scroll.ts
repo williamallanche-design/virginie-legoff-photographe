@@ -23,3 +23,9 @@ export function scrollToTop() {
   if (instance) instance.scrollTo(0, { immediate: true });
   else window.scrollTo(0, 0);
 }
+
+/** Défilement animé vers une position (utilisé par les commandes des sections épinglées). */
+export function scrollToY(y: number) {
+  if (instance) instance.scrollTo(y, { duration: 1.2 });
+  else window.scrollTo({ top: y, behavior: "smooth" });
+}

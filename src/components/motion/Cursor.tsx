@@ -31,7 +31,7 @@ export function Cursor() {
       el.style.opacity = "1";
       x(e.clientX);
       y(e.clientY);
-      const target = (e.target as Element | null)?.closest<HTMLElement>("[data-cursor]");
+      const target = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-cursor]") : null;
       setLabel(target?.dataset.cursor ?? null);
     };
     const leave = () => (el.style.opacity = "0");
