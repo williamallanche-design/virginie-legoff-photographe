@@ -29,7 +29,8 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  // `||` et non `??` : en CI, une variable de dépôt absente arrive sous forme de chaîne vide.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: {
     default: "Virginie Legoff · Photographe d'art & d'événements",
     template: "%s · Virginie Legoff",
