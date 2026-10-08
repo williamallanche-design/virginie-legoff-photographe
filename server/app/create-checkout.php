@@ -2,10 +2,12 @@
 declare(strict_types=1);
 
 /**
- * POST /api/checkout  { items: [{ photo, support, format, qty }] }  →  { url }
+ * POST /api/checkout  { items: [{ photo, support, format, qty }], attempt }  →  { url, mode }
  *
  * Les prix ne viennent jamais du navigateur : chaque ligne est recalculée à partir
  * du catalogue publié et de la grille tarifaire, résolution d'impression comprise.
+ * `attempt` (identifiant tiré au clic) sert de clé d'idempotence : un double clic ou une
+ * requête rejouée renvoie la même session au lieu d'en ouvrir une seconde.
  */
 function create_checkout(): void
 {
@@ -14,7 +16,12 @@ function create_checkout(): void
         Http::error('Trop de tentatives de paiement. Réessayez dans quelques minutes.', 429);
     }
 
-    $items = Http::body()['items'] ?? null;
+    if (!Stripe::enabled()) {
+        Http::error('Le paiement en ligne n\'est pas encore activé.', 503);
+    }
+    $body = Http::body();
+    $items = $body['items'] ?? null;
+    $attempt = is_string($body['attempt'] ?? null) && preg_match('/^[A-Za-z0-9-]{8,64}$/', $body['attempt']) ? $body['attempt'] : null;
     if (!is_array($items) || count($items) === 0 || count($items) > 20) {
         Http::error('Votre panier est vide ou invalide.', 422);
     }
@@ -69,6 +76,7 @@ function create_checkout(): void
     $session = Stripe::request('POST', 'checkout/sessions', [
         'mode' => 'payment',
         'locale' => 'fr',
+        'submit_type' => 'pay',
         'line_items' => $lines,
         'success_url' => $site . '/commande/merci/?session_id={CHECKOUT_SESSION_ID}',
         'cancel_url' => $site . '/panier/',
@@ -79,7 +87,8 @@ function create_checkout(): void
             'submit' => ['message' => 'En validant le paiement, vous acceptez les conditions générales de vente : ' . $site . '/cgv/'],
         ],
         'payment_intent_data' => ['description' => 'Tirages d\'art · Virginie Legoff'],
-    ]);
+        'metadata' => ['source' => 'site'],
+    ], $attempt !== null ? 'checkout-' . hash('sha256', $attempt . json_encode($lines)) : null);
 
-    Http::json(['url' => $session['url']]);
+    Http::json(['url' => $session['url'], 'mode' => Stripe::mode()]);
 }

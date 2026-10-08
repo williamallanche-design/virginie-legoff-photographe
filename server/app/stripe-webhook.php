@@ -4,9 +4,10 @@ declare(strict_types=1);
 /**
  * POST /api/stripe-webhook  (appelé par Stripe uniquement)
  *
- * Événements écoutés : checkout.session.completed, checkout.session.async_payment_succeeded.
+ * Événements écoutés : voir Stripe::WEBHOOK_EVENTS.
  * Chaque commande payée est consignée une seule fois dans data/orders/<session>.json,
- * puis Virginie et le client reçoivent un e-mail récapitulatif.
+ * puis Virginie et le client reçoivent un e-mail récapitulatif. Un paiement différé
+ * (virement, prélèvement) qui échoue est signalé à Virginie, sans e-mail au client.
  */
 function stripe_webhook(): void
 {
@@ -15,7 +16,7 @@ function stripe_webhook(): void
     $event = Stripe::verifyWebhook($payload, $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '');
 
     $type = $event['type'] ?? '';
-    if (!in_array($type, ['checkout.session.completed', 'checkout.session.async_payment_succeeded'], true)) {
+    if (!in_array($type, Stripe::WEBHOOK_EVENTS, true)) {
         Http::json(['received' => true]);
     }
 
@@ -23,6 +24,18 @@ function stripe_webhook(): void
     $id = (string) ($session['id'] ?? '');
     if (!preg_match('/^cs_[A-Za-z0-9_]+$/', $id)) {
         Http::error('Session inconnue.', 400);
+    }
+
+    if ($type === 'checkout.session.async_payment_failed') {
+        $email = $session['customer_details']['email'] ?? '?';
+        Store::log('orders.log', "$id · paiement différé refusé · $email");
+        Mailer::send(
+            Mailer::owner(),
+            'Paiement refusé · ' . money((int) ($session['amount_total'] ?? 0)),
+            "Le paiement différé d'une commande a échoué : rien n'est à expédier.\n\n"
+            . "Client : $email\nRéférence Stripe : $id\n",
+        );
+        Http::json(['received' => true, 'failed' => true]);
     }
     if (($session['payment_status'] ?? '') !== 'paid') {
         // Paiement différé (virement…) : on attendra async_payment_succeeded.

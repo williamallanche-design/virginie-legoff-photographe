@@ -44,6 +44,11 @@ function vl_route(string $route): void
             require __DIR__ . '/app/stripe-webhook.php';
             stripe_webhook();
             return;
+        case 'payment-status':
+        case 'order':
+            require __DIR__ . '/app/payment.php';
+            $route === 'order' ? order_status() : payment_status();
+            return;
         case 'inquiry':
             require __DIR__ . '/app/inquiry.php';
             inquiry();

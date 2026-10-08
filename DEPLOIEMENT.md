@@ -70,15 +70,42 @@ les variantes WebP et la version filigranée directement sur le serveur.
 
 ## 5. Stripe
 
-1. Dashboard → Développeurs → Clés API : copier la clé secrète (`sk_test_…` pour les essais,
-   `sk_live_…` en production) dans `config.php`.
-2. Dashboard → Webhooks → *Ajouter un point de terminaison* :
-   - URL : `https://virginielegoff.fr/api/stripe-webhook`
-   - Événements : `checkout.session.completed`, `checkout.session.async_payment_succeeded`
-   - Copier la *clé secrète de signature* (`whsec_…`) dans `config.php`.
-3. Paramètres → E-mails clients : activer « Paiements réussis » pour le reçu Stripe.
-4. Test : commander avec la carte `4242 4242 4242 4242` en mode test, vérifier la réception des
-   deux e-mails et la présence de `~/vl-app/data/orders/cs_test_….json`.
+Le site encaisse sur le compte Stripe dont la clé figure dans `config.php`. Pour Virginie : son
+propre compte, à son nom et avec son RIB. Aucune ligne de code à modifier pour le brancher.
+
+**Une fois : créer et activer le compte (Virginie)**
+1. Créer le compte sur stripe.com, puis *Activer les paiements* : identité, statut (SIRET),
+   RIB pour les virements. Tant que ce n'est pas fait, seul le mode test fonctionne.
+2. Paramètres → *Informations publiques* : nom affiché « Virginie Legoff », e-mail et
+   téléphone du service client, adresse `https://virginielegoff.fr` (visibles sur le reçu).
+3. Paramètres → *E-mails clients* : activer « Paiements réussis » (reçu envoyé par Stripe).
+4. Paramètres → *Moyens de paiement* : laisser carte, Apple Pay, Google Pay, Link ; ils
+   apparaissent automatiquement dans la page de paiement.
+
+**Brancher le compte sur le site**
+1. Développeurs → Clés API → *Créer une clé restreinte* (plus sûre qu'une clé secrète) :
+   - Checkout Sessions : **Écriture**
+   - Products : **Lecture** (le webhook y lit le support et le format de chaque tirage)
+   - Webhook Endpoints : **Écriture** (sert uniquement à la mise en service)
+   - Tout le reste : Aucun accès (lecture du compte facultative, pour le diagnostic)
+2. Coller la clé dans `vl-app/config.php` → `stripe.secret_key`.
+3. Sur le serveur (Terminal cPanel) :
+   ```bash
+   php ~/vl-app/tools/stripe-setup.php --webhook
+   ```
+   Le script vérifie le compte et le mode (test ou réel), crée le webhook
+   `https://virginielegoff.fr/api/stripe-webhook` avec les bons événements et la version d'API
+   figée, puis affiche la clé de signature `whsec_…` à coller dans `stripe.webhook_secret`.
+4. Relancer `php ~/vl-app/tools/stripe-setup.php` : il doit conclure « Prêt à encaisser ».
+
+**Tester puis ouvrir**
+- Faire d'abord tout le parcours avec la clé de test (`rk_test_…`) : le panier affiche « Mode test »,
+  carte `4242 4242 4242 4242`, date future, code quelconque. Vérifier les deux e-mails et
+  `~/vl-app/data/orders/cs_test_….json`.
+- Puis refaire les étapes « Brancher » avec la clé réelle (`rk_live_…`). Le webhook de test et
+  celui du mode réel sont distincts : relancer le script avec `--webhook` après le changement de clé.
+
+Sans clé, la boutique reste en consultation : le panier invite à écrire à Virginie.
 
 ## 6. Publication depuis l'administration
 

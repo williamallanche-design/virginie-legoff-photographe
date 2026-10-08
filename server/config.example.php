@@ -21,10 +21,13 @@ return [
         'media' => dirname(__DIR__) . '/public_html/media',
     ],
 
+    // Compte Stripe de Virginie : c'est lui qui encaisse. Vide = boutique fermée (panier en consultation).
+    // Voir DEPLOIEMENT.md § 5, puis : php vl-app/tools/stripe-setup.php --webhook
     'stripe' => [
-        // Dashboard Stripe → Développeurs → Clés API. Commencer avec sk_test_…
+        // Clé restreinte rk_test_… / rk_live_… (recommandée) ou clé secrète sk_test_… / sk_live_….
+        // Une clé « live » n'est acceptée que si env = 'production'.
         'secret_key' => '',
-        // Dashboard Stripe → Webhooks → point de terminaison https://…/api/stripe-webhook → « Clé secrète de signature ».
+        // Affichée une seule fois par tools/stripe-setup.php --webhook (whsec_…).
         'webhook_secret' => '',
     ],
 

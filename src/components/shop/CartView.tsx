@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Photo } from "@/components/site/Photo";
 import { api, ApiError } from "@/lib/api";
 import { setQty, useCart } from "@/lib/cart";
+import { newAttemptId, usePaymentStatus } from "@/lib/payment";
 import { euros, photos, printableFormats, prints, titleOf } from "@/lib/catalog";
 
 export function CartView() {
   const items = useCart();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const payment = usePaymentStatus();
+  // Une tentative par contenu de panier : un double clic réutilise la même session Stripe.
+  const attempt = useRef<{ key: string; id: string } | null>(null);
 
   // Une ligne n'est valide que si la photo, le support et le format existent toujours au catalogue.
   const lines = items.flatMap((item) => {
@@ -26,8 +30,11 @@ export function CartView() {
     setPending(true);
     setError(null);
     try {
+      const cartItems = lines.map(({ item }) => item);
+      const key = JSON.stringify(cartItems);
+      if (attempt.current?.key !== key) attempt.current = { key, id: newAttemptId() };
       const { url } = await api<{ url: string }>("checkout", {
-        json: { items: lines.map(({ item }) => item) },
+        json: { items: cartItems, attempt: attempt.current.id },
       });
       window.location.assign(url);
     } catch (err) {
@@ -95,9 +102,27 @@ export function CartView() {
           Frais de livraison calculés à l&apos;étape suivante. Paiement sécurisé par Stripe : vos coordonnées bancaires ne
           transitent jamais par ce site.
         </p>
-        <button type="button" onClick={checkout} disabled={pending} className="btn w-full">
+        {payment?.mode === "test" && (
+          <p className="border-l border-accent pl-4 text-[0.9rem]">
+            <span className="meta text-accent">Mode test</span>
+            <br />
+            Aucun débit réel : payez avec la carte 4242 4242 4242 4242, une date future et n&apos;importe quel code.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={checkout}
+          disabled={pending || payment === null || !payment.enabled}
+          className="btn w-full"
+        >
           {pending ? "Redirection…" : "Passer au paiement"}
         </button>
+        {payment && !payment.enabled && (
+          <p className="text-[0.95rem] text-muted">
+            La commande en ligne ouvre très bientôt. En attendant,{" "}
+            <Link href="/contact/" className="link-text text-fg">écrivez à Virginie</Link> pour réserver ce tirage.
+          </p>
+        )}
         <p role="alert" className="text-[0.95rem] text-accent">{error}</p>
         <p className="text-[0.82rem] text-muted">
           En commandant, vous acceptez les{" "}

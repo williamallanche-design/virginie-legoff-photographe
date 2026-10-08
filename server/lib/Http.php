@@ -74,7 +74,7 @@ final class Http
 }
 
 /** Erreur dont le message peut être montré tel quel au visiteur. */
-final class UserFacingError extends RuntimeException
+class UserFacingError extends RuntimeException
 {
     public function __construct(string $message, public readonly int $status = 400)
     {

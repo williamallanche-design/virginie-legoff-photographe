@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-if (preg_match('#^/api/(checkout|stripe-webhook|inquiry|admin/[a-z-]+)/?$#', $path, $m)) {
+if (preg_match('#^/api/(checkout|stripe-webhook|payment-status|order|inquiry|admin/[a-z-]+)/?$#', $path, $m)) {
     $_GET['route'] = $m[1];
     putenv('VL_APP_DIR=' . __DIR__);
     require __DIR__ . '/public-api/index.php';
