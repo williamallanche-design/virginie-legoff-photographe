@@ -99,6 +99,10 @@ function admin_api(string $action): void
                 $files['content/prints.json'] = admin_json($prints);
                 $changes[] = 'tarifs';
             }
+            // Sans GitHub, le site ne serait pas reconstruit : le prix encaissé différerait du prix affiché.
+            if (isset($files['content/prints.json']) && !GitHub::configured()) {
+                Http::error('Les tarifs ne peuvent pas encore être publiés : la mise à jour automatique du site (jeton GitHub) n\'est pas configurée.', 409);
+            }
             if (!$files) {
                 Http::json(['ok' => true, 'commit' => null, 'deployed' => false]);
             }
