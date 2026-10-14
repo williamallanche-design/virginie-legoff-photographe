@@ -1,5 +1,5 @@
 <?php
-// Développement local uniquement : émule public_html/api/.htaccess pour le serveur intégré de PHP.
+// Développement local uniquement : émule virginielegoff.fr/api/.htaccess pour le serveur intégré de PHP.
 //   npm run php   (php -S localhost:8000 server/dev-router.php)
 declare(strict_types=1);
 

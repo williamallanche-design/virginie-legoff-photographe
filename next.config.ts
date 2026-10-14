@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Site 100 % statique : `next build` produit /out, déployé tel quel dans public_html (O2switch).
+  // Site 100 % statique : `next build` produit /out, déployé tel quel dans virginielegoff.fr (O2switch).
   output: "export",
 
   // /galeries → /galeries/index.html : servi nativement par Apache, sans règle de réécriture.

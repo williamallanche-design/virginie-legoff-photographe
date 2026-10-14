@@ -1,4 +1,4 @@
-# public_html/ (O2switch, Apache) — copié tel quel par `next build` à la racine de /out.
+# virginielegoff.fr/ (O2switch, Apache) — copié tel quel par `next build` à la racine de /out.
 
 Options -Indexes
 DirectoryIndex index.html

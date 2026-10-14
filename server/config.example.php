@@ -18,7 +18,7 @@ return [
         // Catalogue et tarifs publiés (déployés par GitHub Actions).
         'content' => __DIR__ . '/content',
         // Images publiques générées à l'upload.
-        'media' => dirname(__DIR__) . '/public_html/media',
+        'media' => dirname(__DIR__) . '/virginielegoff.fr/media',
     ],
 
     // Compte Stripe de Virginie : c'est lui qui encaisse. Vide = boutique fermée (panier en consultation).

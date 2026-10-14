@@ -1,4 +1,4 @@
-# public_html/api/ : seules les routes connues atteignent le routeur PHP.
+# virginielegoff.fr/api/ : seules les routes connues atteignent le routeur PHP.
 Options -Indexes
 RewriteEngine On
 RewriteBase /api/

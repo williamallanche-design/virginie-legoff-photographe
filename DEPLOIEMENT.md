@@ -1,11 +1,16 @@
 # Mise en ligne sur O2switch
 
 Le site est un export statique Next.js (`/out`) servi par Apache, complété par des scripts PHP
-rangés **hors** de `public_html`. Aucune base de données.
+rangés **hors** de la racine web. Aucune base de données.
+
+`virginielegoff.fr` est un **domaine ajouté** au compte cPanel : sa racine web est le dossier
+`~/virginielegoff.fr/`, **pas** `public_html` (qui sert le site principal du compte, à ne pas toucher).
+Vérifiable dans cPanel → Domaines → colonne « Racine du document ».
 
 ```
 /home/<compte>/
-├─ public_html/                 ← déployé par GitHub Actions (contenu de out/)
+├─ public_html/                 ← site principal du compte : NE RIEN Y DÉPOSER
+├─ virginielegoff.fr/           ← racine web du site (contenu de out/)
 │  ├─ .htaccess                 ← HTTPS, en-têtes de sécurité, cache, anti-hotlink
 │  ├─ api/index.php + .htaccess ← seul PHP exposé : il charge ~/vl-app
 │  ├─ media/<photo>/…           ← envoyé une fois à la main, puis alimenté par l'admin
@@ -31,7 +36,7 @@ rangés **hors** de `public_html`. Aucune base de données.
 
 ## 2. Code serveur et configuration
 
-1. Créer le dossier `~/vl-app/` (même niveau que `public_html`).
+1. Créer le dossier `~/vl-app/` (au même niveau que `virginielegoff.fr/`, dans le dossier personnel).
 2. Copier `server/config.example.php` en `~/vl-app/config.php` et le compléter :
    `site_url`, adresses e-mail, livraison, clés Stripe, jeton GitHub.
 3. Mot de passe d'administration (Terminal cPanel ou SSH) :
@@ -51,19 +56,23 @@ Dépôt → Settings → Secrets and variables → Actions :
 | Secret   | `FTP_USER`     | identifiant cPanel (compte FTP principal, racine = home)    |
 | Secret   | `FTP_PASSWORD` | mot de passe du compte FTP                                  |
 | Variable | `SITE_URL`     | facultative : `https://virginielegoff.fr` par défaut        |
+| Variable | `FTP_SITE_DIR` | facultative : `virginielegoff.fr/` par défaut               |
 
 Chaque push sur `main` reconstruit et déploie le site (2 à 3 minutes). Lancement manuel :
 onglet Actions → « Déploiement O2switch » → *Run workflow*.
 
 Le compte FTP doit avoir pour racine le dossier personnel (`/home/<compte>/`) pour atteindre à la fois
-`public_html/` et `vl-app/`.
+`virginielegoff.fr/` et `vl-app/`.
 
 ## 4. Photos et séquence du hero (une seule fois)
 
 Ces fichiers ne sont pas versionnés (plus de 130 Mo). Les envoyer avec FileZilla en FTPS :
 
-- `public/media/` → `public_html/media/`
-- `public/hero/desktop/` et `public/hero/mobile/` → `public_html/hero/…`
+- `public/media/` → `~/virginielegoff.fr/media/`
+- `public/hero/desktop/` et `public/hero/mobile/` → `~/virginielegoff.fr/hero/…`
+
+Plus simple pour le premier envoi : `deploy/site.zip` (site complet, photos comprises) à extraire
+dans `~/virginielegoff.fr/`, et `deploy/vl-app.zip` à extraire dans `~/vl-app/`.
 
 Ensuite, les nouvelles photos arrivent par l'administration (`/admin/`), qui génère elle-même
 les variantes WebP et la version filigranée directement sur le serveur.

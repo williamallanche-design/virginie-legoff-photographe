@@ -34,18 +34,18 @@ jobs:
         env:
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://virginielegoff.fr' }}
 
-      - name: Point d'entrée PHP de l'API (public_html/api)
+      - name: Point d'entrée PHP de l'API (~/virginielegoff.fr/api)
         run: |
           mkdir -p out/api
           cp server/public-api/index.php server/public-api/.htaccess out/api/
 
-      - name: Code PHP privé (~/vl-app, hors public_html)
+      - name: Code PHP privé (~/vl-app, hors de la racine web)
         run: |
           mkdir -p deploy/vl-app/content
           cp -r server/bootstrap.php server/app server/lib server/assets server/tools deploy/vl-app/
           cp content/catalog.json content/prints.json deploy/vl-app/content/
 
-      - name: Envoi du site → public_html
+      - name: Envoi du site → ~/virginielegoff.fr
         if: env.CAN_DEPLOY == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -54,7 +54,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           local-dir: ./out/
-          server-dir: public_html/
+          # Racine web du domaine ajouté virginielegoff.fr. Jamais public_html : c'est le site principal du compte.
+          server-dir: ${{ vars.FTP_SITE_DIR || 'virginielegoff.fr/' }}
           # Photos et séquence du hero : envoyées à part (non versionnées), jamais supprimées par le déploiement.
           exclude: |
             **/.git*

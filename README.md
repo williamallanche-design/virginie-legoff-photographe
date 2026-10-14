@@ -1,7 +1,7 @@
 # Virginie Legoff · Photographe
 
 Site vitrine et boutique de tirages d'art. Next.js en export statique, scripts PHP hors
-`public_html`, hébergement O2switch, zéro base de données. Mise en ligne : [DEPLOIEMENT.md](DEPLOIEMENT.md).
+de la racine web (`~/vl-app`), hébergement O2switch, zéro base de données. Mise en ligne : [DEPLOIEMENT.md](DEPLOIEMENT.md).
 
 ## Développement
 

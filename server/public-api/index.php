@@ -1,5 +1,5 @@
 <?php
-// Seul fichier PHP exposé dans public_html/api/. Tout le code et les secrets vivent
+// Seul fichier PHP exposé dans virginielegoff.fr/api/. Tout le code et les secrets vivent
 // dans ~/vl-app/, hors de la racine web : ils ne peuvent pas être appelés directement.
 declare(strict_types=1);
 
