@@ -65,6 +65,16 @@ if (!str_starts_with($site, 'https://') && $mode === 'live') {
 try {
     $endpoints = Stripe::request('GET', 'webhook_endpoints', ['limit' => 100])['data'] ?? [];
     $existing = array_values(array_filter($endpoints, static fn ($e) => ($e['url'] ?? '') === $webhookUrl));
+    $configSecret = (string) ($cfg['stripe']['webhook_secret'] ?? '');
+
+    // Point de terminaison existant mais clé de signature perdue (config.php régénéré, changement de clé) :
+    // Stripe ne la réaffiche jamais, on recrée donc ce point de terminaison (le nôtre uniquement).
+    if ($existing && $createWebhook && $configSecret === '') {
+        foreach ($existing as $old) {
+            Stripe::request('DELETE', 'webhook_endpoints/' . $old['id']);
+        }
+        $existing = [];
+    }
 
     if ($existing) {
         $endpoint = $existing[0];
@@ -82,8 +92,18 @@ try {
             'description' => 'Site virginielegoff.fr : commandes de tirages',
         ]);
         $line('Webhook', "créé : $webhookUrl");
-        echo "\n  Copier cette ligne dans config.php (stripe.webhook_secret), elle ne sera plus affichée :\n\n";
-        echo "    'webhook_secret' => '" . ($endpoint['secret'] ?? '') . "',\n";
+        $newSecret = (string) ($endpoint['secret'] ?? '');
+        $configFile = dirname(__DIR__) . '/config.php';
+        $source = (string) @file_get_contents($configFile);
+        $patched = preg_replace("/('webhook_secret'\\s*=>\\s*)'[^']*'/", "\${1}'" . $newSecret . "'", $source, 1, $count);
+        if ($count === 1 && $patched !== null && file_put_contents($configFile, $patched, LOCK_EX) !== false) {
+            // Clé de signature enregistrée directement : rien à recopier.
+            $cfg['stripe']['webhook_secret'] = $newSecret;
+            $line('Clé de signature', 'enregistrée dans config.php');
+        } else {
+            echo "\n  Copier cette ligne dans config.php (stripe.webhook_secret), elle ne sera plus affichée :\n\n";
+            echo "    'webhook_secret' => '$newSecret',\n";
+        }
     } else {
         $line('Webhook', "absent pour $webhookUrl : relancer avec --webhook", false);
         $ok = false;

@@ -37,7 +37,9 @@ Vérifiable dans cPanel → Domaines → colonne « Racine du document ».
 ## 2. Code serveur et configuration
 
 1. Créer le dossier `~/vl-app/` (au même niveau que `virginielegoff.fr/`, dans le dossier personnel).
-2. Copier `server/config.example.php` en `~/vl-app/config.php` et le compléter :
+2. Lancer l'assistant (Terminal cPanel) : `php ~/vl-app/tools/configure.php`. Il pose les questions
+   (e-mails, clé Stripe, livraison, mot de passe admin) et écrit `config.php` en 600. Ou, à la main,
+   copier `server/config.example.php` en `~/vl-app/config.php` et le compléter :
    `site_url`, adresses e-mail, livraison, clés Stripe, jeton GitHub.
 3. Mot de passe d'administration (Terminal cPanel ou SSH) :
    ```bash
