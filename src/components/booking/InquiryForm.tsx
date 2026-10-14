@@ -184,7 +184,7 @@ function Confirmation({ event }: { event: boolean }) {
           </div>
           {site.calendlyUrl ? (
             <iframe
-              title="Réserver un rendez-vous avec Virginie Legoff"
+              title="Réserver un rendez-vous avec Virginie Le Goff"
               src={`${site.calendlyUrl}?hide_gdpr_banner=1&background_color=f2f1ed&text_color=15181a&primary_color=8f5a24`}
               className="h-[720px] w-full border border-line bg-papier"
               loading="lazy"

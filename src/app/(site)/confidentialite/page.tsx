@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <LegalPage eyebrow="Données personnelles" title="Politique de confidentialité" updated="octobre 2026">
       <h2>Responsable du traitement</h2>
       <p>
-        Virginie Legoff, entrepreneuse individuelle (SIRET 950 981 910 00017), joignable à{" "}
+        Virginie Le Goff, entrepreneuse individuelle (SIRET 950 981 910 00017), joignable à{" "}
         <a href={`mailto:${site.email}`} className="link-text">{site.email}</a>.
       </p>
 

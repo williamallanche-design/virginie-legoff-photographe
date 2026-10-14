@@ -94,10 +94,10 @@ function stripe_webhook(): void
     if ($order['customer']['email']) {
         Mailer::send(
             $order['customer']['email'],
-            'Votre commande de tirages · Virginie Legoff',
+            'Votre commande de tirages · Virginie Le Goff',
             "Bonjour,\n\nMerci pour votre commande. Le paiement est bien reçu et votre tirage va être préparé. "
             . "Vous recevrez un message au moment de l'expédition.\n\n$summary\n\n"
-            . "Pour toute question, répondez simplement à cet e-mail.\n\nVirginie Legoff\n",
+            . "Pour toute question, répondez simplement à cet e-mail.\n\nVirginie Le Goff\n",
             Mailer::owner(),
         );
     }

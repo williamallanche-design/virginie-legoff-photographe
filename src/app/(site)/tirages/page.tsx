@@ -6,7 +6,7 @@ import { allSeries, euros, forSalePhotos, frList, prints } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Tirages d'art",
-  description: "Tirages fine art des photographies de Virginie Legoff, sur papier coton Hahnemühle et Canson ou sur aluminium Dibond.",
+  description: "Tirages fine art des photographies de Virginie Le Goff, sur papier coton Hahnemühle et Canson ou sur aluminium Dibond.",
 };
 
 export default function PrintsPage() {

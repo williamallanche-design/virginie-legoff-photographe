@@ -8,7 +8,7 @@ import { allSeries, photos, photosOf } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Galeries",
-  description: "Couchers de soleil, noir & blanc, mer & ciel : les séries photographiques de Virginie Legoff.",
+  description: "Couchers de soleil, noir & blanc, mer & ciel : les séries photographiques de Virginie Le Goff.",
 };
 
 // Composition asymétrique de chaque série : une grande image, deux petites décalées.

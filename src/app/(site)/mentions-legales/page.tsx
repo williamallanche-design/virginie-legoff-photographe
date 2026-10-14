@@ -9,7 +9,7 @@ export default function LegalNoticePage() {
     <LegalPage eyebrow="Informations légales" title="Mentions légales" updated="octobre 2026">
       <h2>Éditrice du site</h2>
       <p>
-        Virginie Legoff, entrepreneuse individuelle (micro-entreprise)
+        Virginie Le Goff, entrepreneuse individuelle (micro-entreprise)
         <br />
         SIREN : 950 981 910 · SIRET : 950 981 910 00017
         <br />
@@ -23,7 +23,7 @@ export default function LegalNoticePage() {
         <br />
         TVA non applicable, art. 293 B du CGI
       </p>
-      <p>Directrice de la publication : Virginie Legoff.</p>
+      <p>Directrice de la publication : Virginie Le Goff.</p>
 
       <h2>Hébergement</h2>
       <p>
@@ -34,7 +34,7 @@ export default function LegalNoticePage() {
 
       <h2>Propriété intellectuelle</h2>
       <p>
-        L&apos;ensemble des photographies présentées sur ce site est la propriété exclusive de Virginie Legoff et protégé
+        L&apos;ensemble des photographies présentées sur ce site est la propriété exclusive de Virginie Le Goff et protégé
         par le Code de la propriété intellectuelle. Toute reproduction, représentation, diffusion ou exploitation, totale ou
         partielle, sans autorisation écrite préalable est interdite. L&apos;achat d&apos;un tirage ne transfère aucun droit
         de reproduction.

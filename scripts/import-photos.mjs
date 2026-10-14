@@ -2,6 +2,7 @@
 //
 //   node scripts/import-photos.mjs            (ne régénère que ce qui manque)
 //   node scripts/import-photos.mjs --force    (régénère toutes les images)
+//   node scripts/import-photos.mjs --watermark (régénère le filigrane et les versions lightbox seulement)
 //   PHOTOS_SRC="D:/photos" node scripts/import-photos.mjs
 //
 // Contrat de sortie, identique à celui du script PHP d'upload (server/lib/Images.php) :
@@ -22,6 +23,7 @@ const OUT = path.join(ROOT, "public", "media");
 const CATALOG = path.join(ROOT, "content", "catalog.json");
 const WATERMARK = path.join(ROOT, "server", "assets", "watermark.png");
 const FORCE = process.argv.includes("--force");
+const WATERMARK_ONLY = process.argv.includes("--watermark");
 
 const WIDTHS = [480, 960, 1600];
 const LIGHTBOX_EDGE = 2400;
@@ -134,9 +136,9 @@ function readExif(buffer) {
 }
 
 async function ensureWatermark() {
-  if (existsSync(WATERMARK) && !FORCE) return;
+  if (existsSync(WATERMARK) && !FORCE && !WATERMARK_ONLY) return;
   await mkdir(path.dirname(WATERMARK), { recursive: true });
-  const text = "© Virginie Legoff";
+  const text = "© Virginie Le Goff";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="240">
     <defs><filter id="soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="10"/></filter></defs>
     <text x="800" y="150" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-style="italic"
@@ -191,7 +193,7 @@ async function processPhoto(item, slug) {
   }
 
   const lightbox = path.join(dir, "lightbox.webp");
-  if (!existsSync(lightbox) || FORCE) {
+  if (!existsSync(lightbox) || FORCE || WATERMARK_ONLY) {
     const scale = Math.min(1, LIGHTBOX_EDGE / Math.max(width, height));
     const lw = Math.round(width * scale);
     const mark = await sharp(WATERMARK).resize({ width: Math.round(lw * WATERMARK_RATIO) }).toBuffer();

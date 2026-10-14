@@ -33,12 +33,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   alternates: { canonical: "./" },
   title: {
-    default: "Virginie Legoff · Photographe d'art & d'événements",
-    template: "%s · Virginie Legoff",
+    default: "Virginie Le Goff · Photographe d'art & d'événements",
+    template: "%s · Virginie Le Goff",
   },
   description:
-    "Photographies d'art de la côte bretonne, tirages fine art et reportages de mariages et d'événements par Virginie Legoff.",
-  openGraph: { type: "website", locale: "fr_FR", siteName: "Virginie Legoff" },
+    "Photographies d'art de la côte bretonne, tirages fine art et reportages de mariages et d'événements par Virginie Le Goff.",
+  openGraph: { type: "website", locale: "fr_FR", siteName: "Virginie Le Goff" },
 };
 
 export const viewport: Viewport = {

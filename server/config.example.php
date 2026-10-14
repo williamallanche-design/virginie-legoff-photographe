@@ -43,7 +43,7 @@ return [
         'transport' => 'mail', // 'log' en local : écrit dans data/logs/mail.log
         'to' => '',            // adresse de Virginie (demandes et commandes)
         'from' => 'contact@virginielegoff.fr', // boîte à créer dans cPanel (SPF/DKIM actifs)
-        'from_name' => 'Virginie Legoff',
+        'from_name' => 'Virginie Le Goff',
     ],
 
     'admin' => [

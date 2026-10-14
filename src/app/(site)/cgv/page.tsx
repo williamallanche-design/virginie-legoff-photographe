@@ -13,7 +13,7 @@ export default function TermsPage() {
 
       <h2>1. Objet</h2>
       <p>
-        Les présentes conditions régissent la vente à distance de tirages photographiques par Virginie Legoff, entrepreneuse
+        Les présentes conditions régissent la vente à distance de tirages photographiques par Virginie Le Goff, entrepreneuse
         individuelle (SIRET 950 981 910 00017), 22120 Pommeret, joignable à{" "}
         <a href={`mailto:${site.email}`} className="link-text">{site.email}</a> (ci-après « la photographe »), à des
         clients particuliers via ce site.

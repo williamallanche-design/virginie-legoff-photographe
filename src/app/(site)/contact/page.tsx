@@ -6,7 +6,7 @@ import { site } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Présentez votre projet de mariage, d'événement ou de tirage d'art à Virginie Legoff.",
+  description: "Présentez votre projet de mariage, d'événement ou de tirage d'art à Virginie Le Goff.",
 };
 
 export default function ContactPage() {

@@ -59,7 +59,7 @@ export function Header() {
       >
         <div className="flex items-baseline justify-between gap-6">
           <Link href="/" className="pointer-events-auto font-display text-[1.2rem] leading-none tracking-[0.01em] whitespace-nowrap sm:text-[1.35rem]">
-            Virginie Legoff
+            Virginie Le Goff
           </Link>
 
           <nav aria-label="Navigation principale" className="pointer-events-auto hidden items-baseline gap-8 md:flex">
@@ -110,7 +110,7 @@ export function Header() {
             transition={{ duration: 0.9, ease: tide }}
           >
             <div className="flex items-baseline justify-between">
-              <span className="font-display text-[1.35rem]">Virginie Legoff</span>
+              <span className="font-display text-[1.35rem]">Virginie Le Goff</span>
               <button type="button" onClick={() => setOpen(false)} className="meta" autoFocus>
                 Fermer
               </button>

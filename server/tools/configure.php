@@ -121,7 +121,7 @@ $config = [
             'max_days' => max($min, $max),
         ]],
     ],
-    'mail' => ['transport' => 'mail', 'to' => $to, 'from' => $from, 'from_name' => 'Virginie Legoff'],
+    'mail' => ['transport' => 'mail', 'to' => $to, 'from' => $from, 'from_name' => 'Virginie Le Goff'],
     'admin' => ['password_hash' => $hash, 'session_hours' => 8],
     'github' => [
         'token' => $token,

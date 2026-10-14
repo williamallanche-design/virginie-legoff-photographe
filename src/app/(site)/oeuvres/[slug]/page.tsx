@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/oeuvres/[slug]">)
   const series = getSeries(p.series);
   return {
     title: titleOf(p),
-    description: `${titleOf(p)}${p.place ? `, ${p.place}` : ""}. Photographie de Virginie Legoff, série ${series?.title}. Tirages d'art sur papier coton ou aluminium.`,
+    description: `${titleOf(p)}${p.place ? `, ${p.place}` : ""}. Photographie de Virginie Le Goff, série ${series?.title}. Tirages d'art sur papier coton ou aluminium.`,
     openGraph: { images: [{ url: `${mediaSrc(p)}/1600.webp`, width: 1600, height: Math.round((1600 * p.height) / p.width) }] },
   };
 }

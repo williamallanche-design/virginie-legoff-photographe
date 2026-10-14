@@ -38,7 +38,7 @@ export function Footer() {
       </div>
 
       <div className="meta mt-[clamp(4rem,10vw,8rem)] flex flex-wrap justify-between gap-x-8 gap-y-3 border-t border-line pt-6">
-        <span>© {year} Virginie Legoff · Toutes les photographies sont protégées par le droit d&apos;auteur</span>
+        <span>© {year} Virginie Le Goff · Toutes les photographies sont protégées par le droit d&apos;auteur</span>
         <span className="flex gap-6">
           <Link href="/mentions-legales/" className="link-line">Mentions légales</Link>
           <Link href="/cgv/" className="link-line">CGV</Link>

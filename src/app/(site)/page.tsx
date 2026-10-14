@@ -42,7 +42,7 @@ export default function Home() {
 
       <Section mood="papier" className="gutter py-[clamp(7rem,16vw,14rem)]">
         <div className="grid gap-y-12 md:grid-cols-12 md:gap-x-8">
-          <p className="meta md:col-span-3">Virginie Legoff · Photographe</p>
+          <p className="meta md:col-span-3">Virginie Le Goff · Photographe</p>
           <RevealText as="h2" className="text-h2 md:col-span-9">
             Des paysages de la côte bretonne tirés sur papier d&apos;art, et des mariages photographiés avec la même{" "}
             <em className="text-accent">attention à la lumière</em>.

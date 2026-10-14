@@ -9,7 +9,7 @@ import { getPhoto, photos } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: "Mariages & événements",
   description:
-    "Reportages de mariages, d'événements privés et d'entreprise par Virginie Legoff. Chaque prestation commence par un échange par e-mail.",
+    "Reportages de mariages, d'événements privés et d'entreprise par Virginie Le Goff. Chaque prestation commence par un échange par e-mail.",
 };
 
 const SERVICES = [

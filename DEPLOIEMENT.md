@@ -87,7 +87,7 @@ propre compte, à son nom et avec son RIB. Aucune ligne de code à modifier pour
 **Une fois : créer et activer le compte (Virginie)**
 1. Créer le compte sur stripe.com, puis *Activer les paiements* : identité, statut (SIRET),
    RIB pour les virements. Tant que ce n'est pas fait, seul le mode test fonctionne.
-2. Paramètres → *Informations publiques* : nom affiché « Virginie Legoff », e-mail et
+2. Paramètres → *Informations publiques* : nom affiché « Virginie Le Goff », e-mail et
    téléphone du service client, adresse `https://virginielegoff.fr` (visibles sur le reçu).
 3. Paramètres → *E-mails clients* : activer « Paiements réussis » (reçu envoyé par Stripe).
 4. Paramètres → *Moyens de paiement* : laisser carte, Apple Pay, Google Pay, Link ; ils

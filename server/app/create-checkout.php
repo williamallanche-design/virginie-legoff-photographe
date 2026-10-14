@@ -86,7 +86,7 @@ function create_checkout(): void
         'custom_text' => [
             'submit' => ['message' => 'En validant le paiement, vous acceptez les conditions générales de vente : ' . $site . '/cgv/'],
         ],
-        'payment_intent_data' => ['description' => 'Tirages d\'art · Virginie Legoff'],
+        'payment_intent_data' => ['description' => 'Tirages d\'art · Virginie Le Goff'],
         'metadata' => ['source' => 'site'],
     ], $attempt !== null ? 'checkout-' . hash('sha256', $attempt . json_encode($lines)) : null);
 
