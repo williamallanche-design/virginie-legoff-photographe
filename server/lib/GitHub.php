@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Publication du catalogue : commit de content/catalog.json via l'API GitHub.
+ * Publication depuis l'administration : commit de content/catalog.json et content/prints.json via l'API GitHub.
  * Le push déclenche le workflow « Déploiement O2switch » (build + envoi FTPS).
  * Jeton requis : fine-grained, limité à ce dépôt, permission « Contents : read and write ».
  */
@@ -13,22 +13,29 @@ final class GitHub
         return (vl_config()['github']['token'] ?? '') !== '';
     }
 
-    public static function putFile(string $path, string $content, string $message): string
+    /**
+     * Un seul commit pour tous les fichiers modifiés (catalogue et tarifs) : un seul déploiement.
+     * API Git Data : nouvel arbre sur la base du dernier commit, puis avance de la branche.
+     *
+     * @param array<string, string> $files chemin dans le dépôt => contenu
+     */
+    public static function commitFiles(array $files, string $message): string
     {
         $cfg = vl_config()['github'];
-        $url = 'https://api.github.com/repos/' . $cfg['repo'] . '/contents/' . $path;
+        $git = 'https://api.github.com/repos/' . $cfg['repo'] . '/git';
+        $ref = $git . '/refs/heads/' . rawurlencode($cfg['branch']);
 
-        $current = self::call('GET', $url . '?ref=' . rawurlencode($cfg['branch']), null, [200, 404]);
-        $body = [
-            'message' => $message,
-            'content' => base64_encode($content),
-            'branch' => $cfg['branch'],
-        ];
-        if (isset($current['sha'])) {
-            $body['sha'] = $current['sha'];
+        $parent = (string) (self::call('GET', $ref, null, [200])['object']['sha'] ?? '');
+        $baseTree = (string) (self::call('GET', "$git/commits/$parent", null, [200])['tree']['sha'] ?? '');
+        $entries = [];
+        foreach ($files as $path => $content) {
+            $entries[] = ['path' => $path, 'mode' => '100644', 'type' => 'blob', 'content' => $content];
         }
-        $result = self::call('PUT', $url, $body, [200, 201]);
-        return (string) ($result['commit']['sha'] ?? '');
+        $tree = self::call('POST', "$git/trees", ['base_tree' => $baseTree, 'tree' => $entries], [201]);
+        $commit = self::call('POST', "$git/commits", ['message' => $message, 'tree' => $tree['sha'], 'parents' => [$parent]], [201]);
+        // Sans « force » : si la branche a bougé entre-temps, GitHub refuse et rien n'est écrasé.
+        self::call('PATCH', $ref, ['sha' => $commit['sha']], [200]);
+        return (string) $commit['sha'];
     }
 
     private static function call(string $method, string $url, ?array $body, array $okStatuses): array

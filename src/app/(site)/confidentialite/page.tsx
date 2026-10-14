@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { LegalPage, Todo } from "@/components/site/LegalPage";
+import { LegalPage } from "@/components/site/LegalPage";
+import { site } from "@/lib/catalog";
 
 export const metadata: Metadata = { title: "Politique de confidentialité" };
 
@@ -8,7 +9,8 @@ export default function PrivacyPage() {
     <LegalPage eyebrow="Données personnelles" title="Politique de confidentialité" updated="octobre 2026">
       <h2>Responsable du traitement</h2>
       <p>
-        Virginie Legoff, joignable à <Todo>adresse e-mail de contact</Todo>.
+        Virginie Legoff, entrepreneuse individuelle (SIRET 950 981 910 00017), joignable à{" "}
+        <a href={`mailto:${site.email}`} className="link-text">{site.email}</a>.
       </p>
 
       <h2>Données collectées</h2>
@@ -38,7 +40,8 @@ export default function PrivacyPage() {
       <h2>Vos droits</h2>
       <p>
         Vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement et d&apos;opposition sur vos
-        données. Pour l&apos;exercer, écrivez à <Todo>adresse e-mail de contact</Todo>. Vous pouvez également saisir la
+        données. Pour l&apos;exercer, écrivez à{" "}
+        <a href={`mailto:${site.email}`} className="link-text">{site.email}</a>. Vous pouvez également saisir la
         CNIL (cnil.fr).
       </p>
     </LegalPage>

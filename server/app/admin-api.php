@@ -2,15 +2,15 @@
 declare(strict_types=1);
 
 /**
- * /api/admin/<action> : gestion du catalogue par Virginie.
+ * /api/admin/<action> : gestion du catalogue et des tarifs par Virginie.
  *
  *   GET  session   état de la session (+ jeton CSRF)
  *   POST login     { password }
  *   POST logout
- *   GET  catalog   brouillon courant + indicateur « non publié »
- *   POST save      { catalog }  enregistre le brouillon (champs éditables uniquement)
+ *   GET  catalog   brouillons courants (photos et tarifs) + indicateur « non publié »
+ *   POST save      { catalog?, prints? }  enregistre les brouillons (champs éditables uniquement)
  *   POST upload    multipart : file, series  → traite l'image, l'ajoute au brouillon
- *   POST publish   commit du brouillon sur GitHub → déploiement automatique
+ *   POST publish   commit des brouillons sur GitHub → déploiement automatique
  */
 function admin_api(string $action): void
 {
@@ -43,19 +43,22 @@ function admin_api(string $action): void
         case 'catalog':
             Http::method('GET');
             Auth::require();
-            $draft = Catalog::draft();
-            Http::json(['catalog' => $draft, 'unpublished' => $draft != Catalog::published()]);
+            Http::json(['catalog' => Catalog::draft(), 'prints' => Catalog::printsDraft(), 'unpublished' => admin_unpublished()]);
 
         case 'save':
             Http::method('POST');
             Auth::require();
-            $incoming = Http::body()['catalog'] ?? null;
-            if (!is_array($incoming)) {
-                Http::error('Catalogue manquant.', 422);
+            $body = Http::body();
+            if (!is_array($body['catalog'] ?? null) && !is_array($body['prints'] ?? null)) {
+                Http::error('Rien à enregistrer.', 422);
             }
-            $merged = Catalog::mergeEdits(Catalog::draft(), $incoming);
-            Catalog::saveDraft($merged);
-            Http::json(['ok' => true, 'photos' => count($merged['photos'])]);
+            if (is_array($body['catalog'] ?? null)) {
+                Catalog::saveDraft(Catalog::mergeEdits(Catalog::draft(), $body['catalog']));
+            }
+            if (is_array($body['prints'] ?? null)) {
+                Catalog::savePrintsDraft(Catalog::mergePrices(Catalog::prints(), $body['prints']));
+            }
+            Http::json(['ok' => true, 'unpublished' => admin_unpublished()]);
 
         case 'upload':
             Http::method('POST');
@@ -80,14 +83,37 @@ function admin_api(string $action): void
             Auth::require();
             $draft = Catalog::draft();
             $previous = Catalog::published();
-            $json = json_encode($draft, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+            $prints = Catalog::printsDraft();
+            if ($errors = Catalog::printsErrors($prints)) {
+                Http::error('Tarifs incomplets : ' . implode(' ', array_slice($errors, 0, 3)) . (count($errors) > 3 ? ' …' : ''), 422);
+            }
+
+            // Seuls les fichiers modifiés partent sur GitHub, en un seul commit.
+            $files = [];
+            $changes = [];
+            if ($draft != $previous) {
+                $files['content/catalog.json'] = admin_json($draft);
+                $changes[] = 'catalogue';
+            }
+            if ($prints != Catalog::prints()) {
+                $files['content/prints.json'] = admin_json($prints);
+                $changes[] = 'tarifs';
+            }
+            if (!$files) {
+                Http::json(['ok' => true, 'commit' => null, 'deployed' => false]);
+            }
 
             $commit = null;
             if (GitHub::configured()) {
-                $commit = GitHub::putFile('content/catalog.json', $json, 'Catalogue : mise à jour depuis l\'administration');
+                $commit = GitHub::commitFiles($files, ucfirst(implode(' et ', $changes)) . ' : mise à jour depuis l\'administration');
             }
-            // Copie locale immédiate : le paiement connaît les nouvelles photos sans attendre le déploiement.
-            Store::writeAtomic(Catalog::publishedFile(), $json);
+            // Copies locales immédiates : le paiement connaît les nouvelles photos et les nouveaux prix sans attendre le déploiement.
+            if (isset($files['content/catalog.json'])) {
+                Store::writeAtomic(Catalog::publishedFile(), $files['content/catalog.json']);
+            }
+            if (isset($files['content/prints.json'])) {
+                Store::writeAtomic(Catalog::printsFile(), $files['content/prints.json']);
+            }
 
             $kept = array_column($draft['photos'], 'slug');
             foreach (array_column($previous['photos'], 'slug') as $slug) {
@@ -95,9 +121,19 @@ function admin_api(string $action): void
                     Images::trash($slug);
                 }
             }
-            Store::log('admin.log', 'Publication ' . ($commit ?: '(sans GitHub)'));
+            Store::log('admin.log', 'Publication (' . implode(', ', $changes) . ') ' . ($commit ?: '(sans GitHub)'));
             Http::json(['ok' => true, 'commit' => $commit, 'deployed' => $commit !== null]);
     }
 
     Http::error('Action inconnue.', 404);
+}
+
+function admin_unpublished(): bool
+{
+    return Catalog::draft() != Catalog::published() || Catalog::printsDraft() != Catalog::prints();
+}
+
+function admin_json(array $data): string
+{
+    return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
 }

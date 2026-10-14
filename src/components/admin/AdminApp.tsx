@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Reorder, useDragControls } from "motion/react";
 import { API_BASE, api, ApiError } from "@/lib/api";
 import type { Photo, Series } from "@/lib/catalog";
+import { PricesEditor, type Prints } from "./PricesEditor";
 
 type Catalog = { series: Series[]; photos: Photo[] };
 type Session = { authenticated: boolean; csrf?: string };
@@ -15,6 +16,7 @@ const input =
 export function AdminApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [prints, setPrints] = useState<Prints | null>(null);
   const [unpublished, setUnpublished] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -25,8 +27,9 @@ export function AdminApp() {
         .then(async (s) => {
           setSession(s);
           if (!s.authenticated) return;
-          const data = await api<{ catalog: Catalog; unpublished: boolean }>("admin/catalog");
+          const data = await api<{ catalog: Catalog; prints: Prints; unpublished: boolean }>("admin/catalog");
           setCatalog(data.catalog);
+          setPrints(data.prints);
           setUnpublished(data.unpublished);
         })
         .catch((e: Error) => setNotice({ tone: "error", text: e.message })),
@@ -39,13 +42,15 @@ export function AdminApp() {
 
   if (!session) return <p className="meta">Connexion au serveur…</p>;
   if (!session.authenticated) return <Login onDone={load} />;
-  if (!catalog) return <p className="meta">Chargement du catalogue…</p>;
+  if (!catalog || !prints) return <p className="meta">Chargement du catalogue…</p>;
 
   return (
     <Dashboard
       csrf={session.csrf!}
       catalog={catalog}
       setCatalog={setCatalog}
+      prints={prints}
+      setPrints={setPrints}
       unpublished={unpublished}
       setUnpublished={setUnpublished}
       notice={notice}
@@ -98,6 +103,8 @@ type DashboardProps = {
   csrf: string;
   catalog: Catalog;
   setCatalog: (c: Catalog) => void;
+  prints: Prints;
+  setPrints: (p: Prints) => void;
   unpublished: boolean;
   setUnpublished: (v: boolean) => void;
   notice: Notice;
@@ -105,12 +112,14 @@ type DashboardProps = {
   onLogout: () => void;
 };
 
-function Dashboard({ csrf, catalog, setCatalog, unpublished, setUnpublished, notice, setNotice, onLogout }: DashboardProps) {
+function Dashboard({ csrf, catalog, setCatalog, prints, setPrints, unpublished, setUnpublished, notice, setNotice, onLogout }: DashboardProps) {
+  const [view, setView] = useState<"photos" | "tarifs">("photos");
   const [tab, setTab] = useState(catalog.series[0]?.slug ?? "");
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [uploads, setUploads] = useState<{ name: string; progress: number; error?: string }[]>([]);
   const saveTimer = useRef<number | undefined>(undefined);
+  const pricesTimer = useRef<number | undefined>(undefined);
   const headers = { "X-CSRF-Token": csrf };
 
   const inTab = catalog.photos.filter((p) => p.series === tab).sort((a, b) => a.order - b.order);
@@ -124,6 +133,22 @@ function Dashboard({ csrf, catalog, setCatalog, unpublished, setUnpublished, not
       setSaving(true);
       try {
         await api("admin/save", { json: { catalog: next }, headers });
+      } catch (e) {
+        setNotice({ tone: "error", text: (e as Error).message });
+      } finally {
+        setSaving(false);
+      }
+    }, 600);
+  };
+
+  const commitPrints = (next: Prints) => {
+    setPrints(next);
+    setUnpublished(true);
+    window.clearTimeout(pricesTimer.current);
+    pricesTimer.current = window.setTimeout(async () => {
+      setSaving(true);
+      try {
+        await api("admin/save", { json: { prints: next }, headers });
       } catch (e) {
         setNotice({ tone: "error", text: (e as Error).message });
       } finally {
@@ -166,7 +191,8 @@ function Dashboard({ csrf, catalog, setCatalog, unpublished, setUnpublished, not
     setNotice(null);
     try {
       window.clearTimeout(saveTimer.current);
-      await api("admin/save", { json: { catalog }, headers });
+      window.clearTimeout(pricesTimer.current);
+      await api("admin/save", { json: { catalog, prints }, headers });
       await api("admin/publish", { method: "POST", headers });
       setUnpublished(false);
       setNotice({ tone: "ok", text: "Publié. Le site en ligne sera à jour dans 2 à 3 minutes." });
@@ -187,8 +213,25 @@ function Dashboard({ csrf, catalog, setCatalog, unpublished, setUnpublished, not
       <header className="sticky top-0 z-10 -mx-[clamp(16px,4vw,64px)] grid gap-6 border-b border-line bg-bg px-[clamp(16px,4vw,64px)] pt-6 pb-5">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="grid gap-2">
-            <p className="meta">Administration · {catalog.photos.length} photographies</p>
-            <h1 className="text-h2">Catalogue</h1>
+            <nav aria-label="Rubriques" className="flex flex-wrap gap-x-6 gap-y-2">
+              {(
+                [
+                  ["photos", `Photographies · ${catalog.photos.length}`],
+                  ["tarifs", "Tarifs des tirages"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={view === key}
+                  onClick={() => setView(key)}
+                  className="meta link-line text-muted aria-pressed:link-line-on aria-pressed:text-fg"
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <h1 className="text-h2">{view === "photos" ? "Catalogue" : "Tarifs"}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-5">
             <span className="meta" aria-live="polite">
@@ -207,58 +250,66 @@ function Dashboard({ csrf, catalog, setCatalog, unpublished, setUnpublished, not
             {notice.text}
           </p>
         )}
-        <nav aria-label="Séries" className="flex flex-wrap gap-x-8 gap-y-2">
-          {catalog.series.map((s) => (
-            <button
-              key={s.slug}
-              type="button"
-              aria-pressed={tab === s.slug}
-              onClick={() => setTab(s.slug)}
-              className="meta link-line text-muted aria-pressed:link-line-on aria-pressed:text-fg"
-            >
-              {s.title} <span className="tabular-nums">{catalog.photos.filter((p) => p.series === s.slug).length}</span>
-            </button>
-          ))}
-        </nav>
+        {view === "photos" && (
+          <nav aria-label="Séries" className="flex flex-wrap gap-x-8 gap-y-2">
+            {catalog.series.map((s) => (
+              <button
+                key={s.slug}
+                type="button"
+                aria-pressed={tab === s.slug}
+                onClick={() => setTab(s.slug)}
+                className="meta link-line text-muted aria-pressed:link-line-on aria-pressed:text-fg"
+              >
+                {s.title} <span className="tabular-nums">{catalog.photos.filter((p) => p.series === s.slug).length}</span>
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
-      <label className="grid cursor-pointer place-items-center gap-2 border border-dashed border-galet px-6 py-10 text-center transition-colors hover:border-fg">
-        <span className="font-display text-h3 italic">Ajouter des photographies</span>
-        <span className="meta">JPEG, PNG ou WebP · 40 Mo max · série « {catalog.series.find((s) => s.slug === tab)?.title} »</span>
-        <input
-          id="admin-upload"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          className="sr-only"
-          onChange={(e) => e.target.files?.length && upload(e.target.files)}
-        />
-      </label>
-      {uploads.length > 0 && (
-        <ul className="grid gap-2">
-          {uploads.map((u) => (
-            <li key={u.name} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 text-[0.9rem]">
-              <span className="truncate">{u.name}</span>
-              <span className={`meta ${u.error ? "text-accent" : ""}`}>
-                {u.error ?? (u.progress < 1 ? `${Math.round(u.progress * 100)} %` : "Traitée")}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {view === "tarifs" ? (
+        <PricesEditor prints={prints} onChange={commitPrints} />
+      ) : (
+        <>
+          <label className="grid cursor-pointer place-items-center gap-2 border border-dashed border-galet px-6 py-10 text-center transition-colors hover:border-fg">
+            <span className="font-display text-h3 italic">Ajouter des photographies</span>
+            <span className="meta">JPEG, PNG ou WebP · 40 Mo max · série « {catalog.series.find((s) => s.slug === tab)?.title} »</span>
+            <input
+              id="admin-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="sr-only"
+              onChange={(e) => e.target.files?.length && upload(e.target.files)}
+            />
+          </label>
+          {uploads.length > 0 && (
+            <ul className="grid gap-2">
+              {uploads.map((u) => (
+                <li key={u.name} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 text-[0.9rem]">
+                  <span className="truncate">{u.name}</span>
+                  <span className={`meta ${u.error ? "text-accent" : ""}`}>
+                    {u.error ?? (u.progress < 1 ? `${Math.round(u.progress * 100)} %` : "Traitée")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
 
-      <p className="meta">Glissez les lignes par la poignée pour changer l&apos;ordre d&apos;affichage.</p>
-      <Reorder.Group axis="y" values={inTab} onReorder={reorder} className="grid border-t border-line">
-        {inTab.map((p) => (
-          <Row
-            key={p.slug}
-            photo={p}
-            series={catalog.series}
-            onChange={(patch) => updatePhoto(p.slug, patch)}
-            onDelete={() => remove(p.slug)}
-          />
-        ))}
-      </Reorder.Group>
+          <p className="meta">Glissez les lignes par la poignée pour changer l&apos;ordre d&apos;affichage.</p>
+          <Reorder.Group axis="y" values={inTab} onReorder={reorder} className="grid border-t border-line">
+            {inTab.map((p) => (
+              <Row
+                key={p.slug}
+                photo={p}
+                series={catalog.series}
+                onChange={(patch) => updatePhoto(p.slug, patch)}
+                onDelete={() => remove(p.slug)}
+              />
+            ))}
+          </Reorder.Group>
+        </>
+      )}
     </div>
   );
 }

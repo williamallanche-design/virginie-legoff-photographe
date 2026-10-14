@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage, Todo } from "@/components/site/LegalPage";
-import { euros, prints } from "@/lib/catalog";
+import { euros, frList, prints, site } from "@/lib/catalog";
 
 export const metadata: Metadata = { title: "Conditions générales de vente" };
 
@@ -13,14 +13,16 @@ export default function TermsPage() {
 
       <h2>1. Objet</h2>
       <p>
-        Les présentes conditions régissent la vente à distance de tirages photographiques par Virginie Legoff (ci-après
-        « la photographe ») à des clients particuliers via ce site.
+        Les présentes conditions régissent la vente à distance de tirages photographiques par Virginie Legoff, entrepreneuse
+        individuelle (SIRET 950 981 910 00017), 22120 Pommeret, joignable à{" "}
+        <a href={`mailto:${site.email}`} className="link-text">{site.email}</a> (ci-après « la photographe »), à des
+        clients particuliers via ce site.
       </p>
 
       <h2>2. Produits</h2>
       <p>
-        Les tirages sont proposés aux formats {prints.formats.map((f) => f.label).join(" et ")} sur les supports suivants :{" "}
-        {prints.supports.map((s) => `${s.name} (${s.finish.toLowerCase()})`).join(", ")}. {prints.note} Les couleurs
+        Les tirages sont proposés aux formats {frList(prints.formats.map((f) => f.label))} sur les supports suivants :{" "}
+        {frList(prints.supports.map((s) => (s.finish ? `${s.name} (${s.finish.toLowerCase()})` : s.name)))}. {prints.note} Les couleurs
         peuvent légèrement différer de l&apos;affichage selon l&apos;écran utilisé.
       </p>
 
@@ -28,7 +30,7 @@ export default function TermsPage() {
       <p>
         Les prix sont indiqués en euros, de {euros(Math.min(...prints.supports.flatMap((s) => Object.values(s.pricesCents))))} à{" "}
         {euros(Math.max(...prints.supports.flatMap((s) => Object.values(s.pricesCents))))} selon le format et le support,{" "}
-        <Todo>TTC, ou « TVA non applicable, art. 293 B du CGI »</Todo>. Les frais de livraison sont indiqués avant la validation
+        TVA non applicable, art. 293 B du CGI. Les frais de livraison sont indiqués avant la validation
         du paiement.
       </p>
 

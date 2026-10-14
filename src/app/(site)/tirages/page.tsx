@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/site/PageHeader";
 import { Section } from "@/components/site/Section";
 import { PrintsIndex } from "@/components/shop/PrintsIndex";
-import { allSeries, euros, forSalePhotos, prints } from "@/lib/catalog";
+import { allSeries, euros, forSalePhotos, frList, prints } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Tirages d'art",
@@ -21,7 +21,7 @@ export default function PrintsPage() {
             Des tirages à <em className="text-accent">accrocher</em>
           </>
         }
-        lede={`Chaque photographie existe en ${prints.formats.map((f) => f.label).join(" et ")}, sur ${prints.supports.length} supports, de ${euros(Math.min(...all))} à ${euros(Math.max(...all))}.`}
+        lede={`Chaque photographie existe en ${frList(prints.formats.map((f) => f.label))}, sur ${prints.supports.length} supports, de ${euros(Math.min(...all))} à ${euros(Math.max(...all))}.`}
         aside={
           <dl className="grid gap-0 border-t border-line">
             {prints.supports.map((s) => (

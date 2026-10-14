@@ -36,6 +36,9 @@ export type PrintSupport = { id: string; name: string; finish: string; pricesCen
 
 export const site = siteJson;
 
+/** « A », « A et B », « A, B et C » : le nombre de formats et de supports varie depuis l'administration. */
+export const frList = (items: string[]) => new Intl.ListFormat("fr", { type: "conjunction" }).format(items);
+
 /** Adresse publique : variable d'environnement en développement, domaine du site sinon. */
 export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || siteJson.url).replace(/\/$/, "");
 export const prints = printsJson as unknown as {

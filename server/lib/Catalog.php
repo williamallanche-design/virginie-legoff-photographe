@@ -35,10 +35,117 @@ final class Catalog
         Store::writeJson(self::draftFile(), $catalog);
     }
 
+    public static function printsFile(): string
+    {
+        return rtrim(vl_config()['paths']['content'], '/') . '/prints.json';
+    }
+
+    public static function printsDraftFile(): string
+    {
+        return Store::dir() . '/prints.draft.json';
+    }
+
+    /** Grille tarifaire publiée : la seule qui fait foi au paiement. */
     public static function prints(): array
     {
-        $file = rtrim(vl_config()['paths']['content'], '/') . '/prints.json';
-        return Store::readJson($file) ?? throw new RuntimeException('Grille tarifaire introuvable.');
+        return Store::readJson(self::printsFile()) ?? throw new RuntimeException('Grille tarifaire introuvable.');
+    }
+
+    public static function printsDraft(): array
+    {
+        return Store::readJson(self::printsDraftFile()) ?? self::prints();
+    }
+
+    public static function savePrintsDraft(array $prints): void
+    {
+        Store::writeJson(self::printsDraftFile(), $prints);
+    }
+
+    /**
+     * Grille tarifaire envoyée par l'administration, nettoyée. Le brouillon peut être incomplet
+     * (prix pas encore saisi) : la vérification complète se fait à la publication (printsErrors).
+     * La devise et la résolution minimale restent celles du serveur.
+     */
+    public static function mergePrices(array $server, array $incoming): array
+    {
+        $formats = [];
+        foreach (array_slice($incoming['formats'] ?? [], 0, 8) as $f) {
+            $w = self::cm($f['widthCm'] ?? null);
+            $h = self::cm($f['heightCm'] ?? null);
+            $id = is_string($f['id'] ?? null) && preg_match('/^[a-z0-9-]{1,40}$/', $f['id']) ? $f['id'] : null;
+            if ($w === null || $h === null || $id === null || isset($formats[$id])) {
+                continue;
+            }
+            $label = self::cmLabel($w) . ' × ' . self::cmLabel($h) . ' cm';
+            $formats[$id] = ['id' => $id, 'label' => $label, 'widthCm' => $w, 'heightCm' => $h];
+        }
+
+        $supports = [];
+        foreach (array_slice($incoming['supports'] ?? [], 0, 12) as $s) {
+            $id = is_string($s['id'] ?? null) && preg_match('/^[a-z0-9-]{1,60}$/', $s['id']) ? $s['id'] : null;
+            if ($id === null || isset($supports[$id])) {
+                continue;
+            }
+            $prices = [];
+            foreach (array_keys($formats) as $fid) {
+                $cents = $s['pricesCents'][$fid] ?? null;
+                if (is_int($cents) && $cents >= 100 && $cents <= 1_000_000) {
+                    $prices[$fid] = $cents;
+                }
+            }
+            $supports[$id] = [
+                'id' => $id,
+                'name' => self::text($s['name'] ?? null, 80) ?? '',
+                'finish' => self::text($s['finish'] ?? null, 120) ?? '',
+                'pricesCents' => $prices,
+            ];
+        }
+
+        return [
+            'currency' => $server['currency'],
+            'minDpi' => $server['minDpi'],
+            'note' => self::text($incoming['note'] ?? null, 400) ?? '',
+            'formats' => array_values($formats),
+            'supports' => array_values($supports),
+        ];
+    }
+
+    /** Ce qui empêche de publier la grille (vide si elle est complète). */
+    public static function printsErrors(array $prints): array
+    {
+        $errors = [];
+        if (!$prints['formats']) {
+            $errors[] = 'Ajoutez au moins un format.';
+        }
+        if (!$prints['supports']) {
+            $errors[] = 'Ajoutez au moins un support.';
+        }
+        foreach ($prints['supports'] as $s) {
+            $name = $s['name'] !== '' ? $s['name'] : 'sans nom';
+            if ($s['name'] === '') {
+                $errors[] = 'Un support n\'a pas de nom.';
+            }
+            foreach ($prints['formats'] as $f) {
+                if (!isset($s['pricesCents'][$f['id']])) {
+                    $errors[] = "Prix manquant : $name en {$f['label']}.";
+                }
+            }
+        }
+        return $errors;
+    }
+
+    private static function cm(mixed $value): ?float
+    {
+        if (!is_int($value) && !is_float($value)) {
+            return null;
+        }
+        $value = round((float) $value, 1);
+        return $value >= 5 && $value <= 300 ? $value : null;
+    }
+
+    private static function cmLabel(float $cm): string
+    {
+        return str_replace('.', ',', (string) ($cm == floor($cm) ? (int) $cm : $cm));
     }
 
     public static function photo(array $catalog, string $slug): ?array

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage, Todo } from "@/components/site/LegalPage";
+import { site } from "@/lib/catalog";
 
 export const metadata: Metadata = { title: "Mentions légales" };
 
@@ -8,22 +9,27 @@ export default function LegalNoticePage() {
     <LegalPage eyebrow="Informations légales" title="Mentions légales" updated="octobre 2026">
       <h2>Éditrice du site</h2>
       <p>
-        Virginie Legoff, <Todo>statut : entreprise individuelle, micro-entreprise…</Todo>
+        Virginie Legoff, entrepreneuse individuelle (micro-entreprise)
         <br />
-        SIRET : <Todo>numéro SIRET</Todo>
+        SIREN : 950 981 910 · SIRET : 950 981 910 00017
         <br />
-        Adresse : <Todo>adresse professionnelle</Todo>
+        Immatriculée au Registre national des entreprises (RNE)
         <br />
-        E-mail : <Todo>adresse e-mail de contact</Todo>
+        Adresse : <Todo>numéro et rue</Todo>, 22120 Pommeret
         <br />
-        TVA : <Todo>numéro de TVA intracommunautaire, ou « TVA non applicable, art. 293 B du CGI »</Todo>
+        E-mail : <a href={`mailto:${site.email}`} className="link-text">{site.email}</a>
+        <br />
+        Téléphone : <Todo>numéro de téléphone</Todo>
+        <br />
+        TVA non applicable, art. 293 B du CGI
       </p>
       <p>Directrice de la publication : Virginie Legoff.</p>
 
       <h2>Hébergement</h2>
       <p>
-        o2switch, 222-224 boulevard Gustave Flaubert, 63000 Clermont-Ferrand.
-        Site : o2switch.fr. <Todo>coordonnées à vérifier sur o2switch.fr au moment de la mise en ligne</Todo>
+        o2switch SAS, chemin des Pardiaux, 63000 Clermont-Ferrand
+        <br />
+        RCS Clermont-Ferrand 510 909 807 · o2switch.fr
       </p>
 
       <h2>Propriété intellectuelle</h2>
